@@ -4,14 +4,24 @@ import { Search } from 'lucide-react'
 
 export default function PredictionForm({ onSubmit, loading }) {
   const [input, setInput] = useState('')
+  const [chain, setChain] = useState('ethereum') // Default to Ethereum
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (input) onSubmit(input)
+    if (input.trim()) onSubmit({ input, chain })
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex space-x-2">
+      <select
+        value={chain}
+        onChange={(e) => setChain(e.target.value)}
+        className="bg-primary border border-secondary rounded-lg p-2 focus:outline-none focus:border-accent"
+      >
+        <option value="ethereum">Ethereum</option>
+        <option value="solana">Solana</option>
+        <option value="bsc">BSC</option>
+      </select>
       <motion.input
         whileFocus={{ scale: 1.02 }}
         type="text"

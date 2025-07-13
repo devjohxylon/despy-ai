@@ -7,7 +7,7 @@ import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/clerk-reac
 import { useState } from 'react'
 import AlertsFeed from './AlertsFeed'
 
-export default function Topbar() {
+export default function Topbar({ onSubmit }) {
   const date = new Date().toLocaleString()
   const { loading, data } = useData()
   const [showNotifications, setShowNotifications] = useState(false)
@@ -15,7 +15,7 @@ export default function Topbar() {
   return (
     <header className="bg-primary border-b border-secondary p-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
       <div className="text-lg font-semibold">Threat Intel Dashboard</div>
-      <PredictionForm loading={loading} />
+      <PredictionForm loading={loading} onSubmit={onSubmit} />
       <div className="flex items-center space-x-4">
         <motion.div
           animate={{ opacity: [0.5, 1, 0.5] }}
