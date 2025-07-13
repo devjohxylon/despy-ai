@@ -2,7 +2,7 @@
 
 DeSpy AI is a Web3 forensics platform built to trace wallets, detect scams, and score smart contract risk in real-time. Powered by onchain data, smart heuristics, and AI.
 
-## 🔍 What It Does
+# 🔍 What It Does
 
 - Wallet tracing (ETH & SOL)
 - Scam token detection (honeypots, rugpulls, fake liquidity)
