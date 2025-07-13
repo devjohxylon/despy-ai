@@ -1,0 +1,9 @@
+# .gitignore
+backend/.env  # If you have one for keys
+backend/despy.db  # SQLite DB
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
