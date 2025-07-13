@@ -1,12 +1,14 @@
+// src/components/Sidebar.jsx
 import { motion } from 'framer-motion'
-import { Home, AlertTriangle, Activity, Map, Settings } from 'lucide-react'
+import { Home, AlertTriangle, Activity, FileText, Settings } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const navItems = [
-  { icon: Home, label: 'Dashboard' },
-  { icon: AlertTriangle, label: 'Alerts' },
-  { icon: Activity, label: 'Activity' },
-  { icon: Map, label: 'Map' },
-  { icon: Settings, label: 'Settings' },
+  { icon: Home, label: 'Dashboard', path: '/dashboard' },
+  { icon: AlertTriangle, label: 'Alerts', path: '/alerts' },
+  { icon: Activity, label: 'Activity', path: '/activity' },
+  { icon: FileText, label: 'Investigation', path: '/investigation' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 
 export default function Sidebar() {
@@ -19,16 +21,17 @@ export default function Sidebar() {
     >
       <div className="text-2xl font-bold text-accent">DeSpy AI</div>
       <nav className="space-y-2">
-        {navItems.map(({ icon: Icon, label }, i) => (
-          <motion.button
-            key={label}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-full flex items-center space-x-2 p-2 rounded-lg hover:bg-secondary"
-          >
-            <Icon size={20} />
-            <span>{label}</span>
-          </motion.button>
+        {navItems.map(({ icon: Icon, label, path }, i) => (
+          <Link to={path} key={label}>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full flex items-center space-x-2 p-2 rounded-lg hover:bg-secondary cursor-pointer"
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </motion.div>
+          </Link>
         ))}
       </nav>
     </motion.aside>

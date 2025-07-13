@@ -1,18 +1,21 @@
-import { useState } from 'react'
+// src/App.jsx (with Forta integration and corrected routing)
+
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Topbar from './components/Topbar'
 import PredictionForm from './components/PredictionForm'
-import ScoreCard from './components/ScoreCard'
-import RiskRadarChart from './components/RiskRadarChart'
-import ActivityTimeline from './components/ActivityTimeline'
-import AlertsFeed from './components/AlertsFeed'
-import TransactionGraph from './components/TransactionGraph'
+import DashboardPage from './components/DashboardPage'
+import AlertsPage from './components/AlertsPage'
+import ActivityPage from './components/ActivityPage'
+import InvestigationWorkspace from './components/InvestigationWorkspace'
+import SettingsPage from './components/SettingsPage'
+import { useData } from './context/DataContext'
 
 function App() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const { data, setData, loading, setLoading, error, setError } = useData()
+  const navigate = useNavigate()
 
   const severityMap = {
     INFO: 20,
@@ -29,7 +32,6 @@ function App() {
       const address = input.toLowerCase()
       const apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY
 
-      // Fetch transactions from Etherscan (for timeline and graph)
       let transactions = []
       let isToken = false
       if (apiKey) {
@@ -41,7 +43,6 @@ function App() {
           transactions = ethJson.result
         }
 
-        // If no normal txns, try token txns (for contract addresses)
         if (transactions.length === 0) {
           const tokenResponse = await fetch(
             `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${apiKey}`
@@ -54,7 +55,6 @@ function App() {
         }
       }
 
-      // Fetch alerts from Forta GraphQL API
       const fortaQuery = `
         query GetAlerts($input: AlertsInput) {
           alerts(input: $input) {
@@ -87,8 +87,8 @@ function App() {
       const fortaVariables = {
         input: {
           addresses: [address],
-          chainId: 1, // Ethereum
-          createdSince: 604800000 // Last 7 days in ms (7*24*60*60*1000)
+          chainId: 1,
+          createdSince: 604800000
         }
       }
       const fortaResponse = await fetch('https://api.forta.network/graphql', {
@@ -101,7 +101,6 @@ function App() {
 
       const fortaAlerts = fortaJson.data?.alerts?.alerts || []
 
-      // Derive data
       const timeline = transactions.map(tx => ({
         date: new Date(tx.timeStamp * 1000).toLocaleString(),
         event: isToken
@@ -118,7 +117,6 @@ function App() {
         message: `${alert.name}: ${alert.description}`
       }))
 
-      // Calculate score: Max severity or average if alerts, else based on txns
       let score = 0
       if (fortaAlerts.length > 0) {
         score = Math.max(...fortaAlerts.map(a => severityMap[a.severity] || 0))
@@ -137,6 +135,7 @@ function App() {
       ]
 
       setData({ score, risks, timeline, alerts, transactions, address })
+      navigate('/dashboard')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -150,48 +149,19 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-secondary">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <PredictionForm onSubmit={handleSubmit} loading={loading} />
-          </motion.div>
+          <Routes>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/investigation" element={<InvestigationWorkspace />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/" element={<PredictionForm onSubmit={handleSubmit} loading={loading} />} />
+          </Routes>
           {error && <div className="text-danger mt-4">{error}</div>}
-          {loading ? (
-            <LoadingSkeleton />
-          ) : data ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              <ScoreCard score={data.score} />
-              <RiskRadarChart data={data.risks} />
-              <ActivityTimeline events={data.timeline} />
-              <AlertsFeed alerts={data.alerts} />
-              <div className="md:col-span-2 lg:col-span-3">
-                <TransactionGraph transactions={data.transactions} address={data.address} />
-              </div>
-            </div>
-          ) : (
-            <div className="text-center mt-20 text-text-secondary">Enter a wallet or token to analyze</div>
-          )}
         </main>
       </div>
     </div>
   )
 }
-
-const LoadingSkeleton = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-    {[...Array(4)].map((_, i) => (
-      <div key={i} className="bg-primary rounded-lg p-4 animate-pulse">
-        <div className="h-4 bg-secondary rounded w-3/4 mb-4"></div>
-        <div className="h-32 bg-secondary rounded"></div>
-      </div>
-    ))}
-    <div className="md:col-span-2 lg:col-span-3 bg-primary rounded-lg p-4 animate-pulse">
-      <div className="h-4 bg-secondary rounded w-3/4 mb-4"></div>
-      <div className="h-64 bg-secondary rounded"></div>
-    </div>
-  </div>
-)
 
 export default App
