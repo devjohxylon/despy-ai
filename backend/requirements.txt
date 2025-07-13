@@ -1,7 +1,0 @@
-fastapi==0.115.0
-uvicorn==0.30.6
-pydantic==2.9.2
-sqlalchemy==2.0.35
-alchemy-sdk-py==0.2.0  # Note: Check for latest compatible version
-solana==0.34.3
-asyncpg==0.29.0  # For PostgreSQL in production
