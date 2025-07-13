@@ -1,3 +1,4 @@
+// src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -6,16 +7,20 @@ import './index.css'
 import { DataProvider } from './context/DataContext'
 import { ClerkProvider } from '@clerk/clerk-react'
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY // Add to .env and Vercel settings
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!clerkPubKey) {
+  throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY environment variable')
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <BrowserRouter>
+    <BrowserRouter>
+      <ClerkProvider publishableKey={clerkPubKey}>
         <DataProvider>
           <App />
         </DataProvider>
-      </BrowserRouter>
-    </ClerkProvider>
+      </ClerkProvider>
+    </BrowserRouter>
   </React.StrictMode>,
 )

@@ -1,134 +1,123 @@
+// src/components/TransactionGraph.jsx
+import { Bar } from 'react-chartjs-2'
+import Chart from 'chart.js/auto'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import * as d3 from 'd3'
 
-export default function TransactionGraph({ transactions = [], address }) {
-  const svgRef = useRef(null)
+Chart.register(ChartDataLabels)
+
+export default function TransactionGraph({ transactions, address }) {
+  const chartRef = useRef(null)
 
   useEffect(() => {
-    if (transactions.length === 0) {
-      // Fallback if no txns
-      d3.select(svgRef.current).append('text')
-        .attr('x', 400)
-        .attr('y', 200)
-        .attr('text-anchor', 'middle')
-        .text('No recent transactions found')
-        .attr('fill', '#9CA3AF')
-      return
+    const chart = chartRef.current
+    if (chart) {
+      chart.destroy() // Destroy previous chart to avoid conflicts
     }
+  }, [transactions])
 
-    const width = 800
-    const height = 400
+  const data = {
+    labels: transactions.map(tx => tx.hash?.slice(0, 6) || tx.signature?.slice(0, 6) || 'Unknown'),
+    datasets: [{
+      label: `Transactions for ${address}`,
+      data: transactions.map(tx => parseFloat(tx.value || 0) / (tx.tokenDecimal ? 10 ** parseInt(tx.tokenDecimal) : 1e18) || 0),
+      backgroundColor: ctx => {
+        const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200)
+        gradient.addColorStop(0, 'rgba(75, 192, 192, 0.8)')
+        gradient.addColorStop(1, 'rgba(75, 192, 192, 0.2)')
+        return gradient
+      },
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 2,
+      barPercentage: 0.7,
+      categoryPercentage: 0.7
+    }]
+  }
 
-    // Clear previous SVG
-    d3.select(svgRef.current).selectAll('*').remove()
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 2000,
+      easing: 'easeOutBounce'
+    },
+    scales: {
+      x: { title: { display: true, text: 'Transaction IDs', color: '#a0aec0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+      y: { title: { display: true, text: 'Value (in Native Units)', color: '#a0aec0' }, beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+    },
+    plugins: [
+      {
+        legend: { position: 'top', labels: { color: '#e2e8f0' } },
+        datalabels: {
+          color: '#fff',
+          font: { size: 14, weight: 'bold' },
+          formatter: (value, ctx) => `${value.toFixed(4)} ${transactions[ctx.dataIndex].tokenSymbol || 'ETH'}`,
+          anchor: 'end',
+          align: 'top',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          borderRadius: 4,
+          padding: 2
+        },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              const tx = transactions[tooltipItem.dataIndex]
+              return [
+                `Hash: ${tx.hash || tx.signature || 'N/A'}`,
+                `Value: ${tooltipItem.raw.toFixed(4)} ${tx.tokenSymbol || 'ETH'}`,
+                `Gas: ${parseFloat(tx.gasUsed || 0).toLocaleString()}`
+              ]
+            }
+          },
+          backgroundColor: 'rgba(26, 32, 44, 0.9)',
+          titleColor: '#e2e8f0',
+          bodyColor: '#a0aec0'
+        },
+        beforeDraw: (chart) => {
+          const ctx = chart.ctx
+          ctx.save()
 
-    const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height)
-      .attr('viewBox', [0, 0, width, height])
+          // Custom background gradient
+          const gradientBg = ctx.createLinearGradient(0, 0, chart.width, chart.height)
+          gradientBg.addColorStop(0, 'rgba(0, 0, 0, 0.3)')
+          gradientBg.addColorStop(1, 'rgba(0, 0, 0, 0.8)')
+          ctx.fillStyle = gradientBg
+          ctx.fillRect(0, 0, chart.width, chart.height)
 
-    // Build nodes and links
-    const nodes = new Set([address, ...transactions.map(tx => tx.to), ...transactions.map(tx => tx.from)])
-    const nodeData = Array.from(nodes).map(id => ({ id }))
-    const linkData = transactions.map(tx => ({
-      source: tx.from,
-      target: tx.to,
-      value: parseFloat(tx.value / 1e18)
-    }))
+          // Glowing trails
+          ctx.beginPath()
+          transactions.forEach((tx, index) => {
+            const x = chart.scales.x.getPixelForValue(index)
+            const y = chart.scales.y.getPixelForValue(parseFloat(tx.value || 0) / (tx.tokenDecimal ? 10 ** parseInt(tx.tokenDecimal) : 1e18) || 0)
+            ctx.moveTo(x, chart.height)
+            ctx.lineTo(x, y)
+            const gradientGlow = ctx.createRadialGradient(x, y, 0, x, y, 20)
+            gradientGlow.addColorStop(0, 'rgba(75, 192, 192, 0.8)')
+            gradientGlow.addColorStop(0.5, 'rgba(75, 192, 192, 0.4)')
+            gradientGlow.addColorStop(1, 'rgba(75, 192, 192, 0)')
+            ctx.strokeStyle = gradientGlow
+            ctx.lineWidth = 2
+            ctx.stroke()
+          })
+          ctx.closePath()
 
-    // Force simulation
-    const simulation = d3.forceSimulation(nodeData)
-      .force('link', d3.forceLink(linkData).id(d => d.id).distance(100))
-      .force('charge', d3.forceManyBody().strength(-200))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-
-    // Links with color scale
-    const colorScale = d3.scaleLinear().domain([0, 10]).range(['#9CA3AF', '#EF4444']) // Gray to red for value
-    const link = svg.append('g')
-      .selectAll('line')
-      .data(linkData)
-      .join('line')
-      .attr('stroke', d => colorScale(d.value))
-      .attr('stroke-opacity', 0.6)
-      .attr('stroke-width', d => Math.sqrt(d.value) || 1)
-
-    // Nodes
-    const node = svg.append('g')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 1.5)
-      .selectAll('circle')
-      .data(nodeData)
-      .join('circle')
-      .attr('r', 5)
-      .attr('fill', d => d.id === address ? '#3B82F6' : '#9CA3AF')
-      .call(drag(simulation))
-
-    // Labels
-    const label = svg.append('g')
-      .attr('fill', '#F3F4F6')
-      .attr('font-size', 10)
-      .selectAll('text')
-      .data(nodeData)
-      .join('text')
-      .text(d => d.id ? d.id.slice(0, 6) + '...' : 'Unknown')
-      .attr('dy', '.35em')
-      .attr('dx', 8)
-
-    // Tooltips (simple on hover)
-    node.append('title').text(d => `Address: ${d.id}`)
-    link.append('title').text(d => `Value: ${d.value.toFixed(4)} ETH`)
-
-    simulation.on('tick', () => {
-      link
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y)
-
-      node
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y)
-
-      label
-        .attr('x', d => d.x)
-        .attr('y', d => d.y)
-    })
-
-    function drag(simulation) {
-      function dragstarted(event) {
-        if (!event.active) simulation.alphaTarget(0.3).restart()
-        event.subject.fx = event.subject.x
-        event.subject.fy = event.subject.y
+          // Subtle background overlay
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
+          ctx.fillRect(0, 0, chart.width, chart.height)
+          ctx.restore()
+        },
+        id: 'customCanvasEffects'
       }
-
-      function dragged(event) {
-        event.subject.fx = event.x
-        event.subject.fy = event.y
-      }
-
-      function dragended(event) {
-        if (!event.active) simulation.alphaTarget(0)
-        event.subject.fx = null
-        event.subject.fy = null
-      }
-
-      return d3.drag()
-        .on('start', dragstarted)
-        .on('drag', dragged)
-        .on('end', dragended)
-    }
-  }, [transactions, address])
+    ],
+    rotation: -0.5 // Enhanced 3D tilt
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className="bg-primary rounded-lg p-4 shadow-lg h-96 overflow-hidden"
-    >
-      <div className="text-text-secondary mb-2">Transaction Graph</div>
-      <svg ref={svgRef}></svg>
-    </motion.div>
+    <div className="bg-primary/80 rounded-xl p-5 shadow-lg relative overflow-hidden">
+      <h2 className="text-text-secondary text-xl font-light mb-4">Transaction Graph (3D with Glowing Trails)</h2>
+      <div style={{ height: '400px', position: 'relative' }}>
+        <Bar ref={chartRef} data={data} options={options} />
+      </div>
+    </div>
   )
 }

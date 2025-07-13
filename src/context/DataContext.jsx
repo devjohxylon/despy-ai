@@ -1,4 +1,5 @@
-import { createContext, useState, useContext } from 'react'
+// src/context/DataContext.js
+import { createContext, useContext, useState } from 'react'
 
 const DataContext = createContext()
 
@@ -14,6 +15,4 @@ export function DataProvider({ children }) {
   )
 }
 
-export function useData() {
-  return useContext(DataContext)
-}
+export const useData = () => useContext(DataContext)

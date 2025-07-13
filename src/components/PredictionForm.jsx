@@ -1,14 +1,17 @@
+// src/components/PredictionForm.jsx
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 
 export default function PredictionForm({ onSubmit, loading }) {
   const [input, setInput] = useState('')
-  const [chain, setChain] = useState('ethereum') // Default to Ethereum
+  const [chain, setChain] = useState('ethereum')
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (input.trim()) onSubmit({ input, chain })
+    if (input.trim() && typeof onSubmit === 'function') {
+      onSubmit({ input, chain })
+    }
   }
 
   return (

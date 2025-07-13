@@ -1,6 +1,6 @@
 // src/components/Sidebar.jsx
 import { motion } from 'framer-motion'
-import { Home, AlertTriangle, Activity, FileText, Settings } from 'lucide-react'
+import { Home, AlertTriangle, Activity, FileText, Settings, Code } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { icon: AlertTriangle, label: 'Alerts', path: '/alerts' },
   { icon: Activity, label: 'Activity', path: '/activity' },
   { icon: FileText, label: 'Investigation', path: '/investigation' },
+  { icon: Code, label: 'Contract Scanner', path: '/contract-scanner' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 

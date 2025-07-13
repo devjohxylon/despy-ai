@@ -1,7 +1,51 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --primary: #1a202c;
+    --secondary: #2d3748;
+    --accent: #63b3ed;
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --danger: #fc8181;
+  }
+
+  [data-theme="dark"] {
+    --primary: #1a202c;
+    --secondary: #2d3748;
+    --accent: #63b3ed;
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --danger: #fc8181;
+  }
+}
+
 body {
-  font-family: 'Inter', sans-serif;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+.text-accent { color: var(--accent); }
+.text-danger { color: var(--danger); }
+.bg-primary { background-color: var(--primary); }
+.bg-primary { background-color: rgba(26, 32, 44, 0.9); }
+.bg-secondary { background-color: var(--secondary); }
+.text-text-secondary { color: var(--text-secondary); }
+
+.rounded-xl { border-radius: 1rem; }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
