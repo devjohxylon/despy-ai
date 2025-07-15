@@ -3,7 +3,23 @@ import { useState, useEffect } from 'react'
 import { ChevronRight } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { SignIn, SignedIn, SignedOut, useAuth } from '@clerk/clerk-react'
 import DashboardPage from './components/DashboardPage'
+
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const { isLoaded, isSignedIn } = useAuth()
+  
+  if (!isLoaded) {
+    return <div>Loading...</div>
+  }
+
+  if (!isSignedIn) {
+    return <Navigate to="/sign-in" replace />
+  }
+
+  return children
+}
 
 // Landing Page Component
 function LandingPage() {
@@ -269,7 +285,21 @@ export default function App() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        
+        <Route path="/sign-in/*" element={
+          <SignedOut>
+            <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center p-4">
+              <SignIn routing="path" path="/sign-in" />
+            </div>
+          </SignedOut>
+        } />
+
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
