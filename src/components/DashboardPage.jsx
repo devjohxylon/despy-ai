@@ -13,11 +13,10 @@ export default function DashboardPage() {
   const { data, loading } = useData()
 
   useEffect(() => {
-    // Ensure chart updates with new data
     if (data?.transactions) {
-      const chart = document.getElementById('transactionGraph')
-      if (chart) chart.style.opacity = '0'
-      setTimeout(() => chart && (chart.style.opacity = '1'), 100)
+      console.log('Transactions data:', data.transactions)
+    } else {
+      console.log('No transactions data available')
     }
   }, [data?.transactions])
 
@@ -82,7 +81,11 @@ export default function DashboardPage() {
             transition={{ delay: 0.5 }}
             className="col-span-full bg-primary/90 rounded-xl p-5 shadow-lg"
           >
-            <TransactionGraph transactions={data.transactions} address={data.address} />
+            {data.transactions && data.transactions.length > 0 ? (
+              <TransactionGraph transactions={data.transactions} address={data.address} />
+            ) : (
+              <div className="text-center text-text-secondary">No transactions to display</div>
+            )}
           </motion.div>
           {data.predictiveRisk !== undefined && (
             <motion.div

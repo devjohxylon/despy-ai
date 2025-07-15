@@ -1,278 +1,328 @@
-// src/App.jsx
-import { useNavigate } from 'react-router-dom'
-import { Routes, Route, useLocation } from 'react-router-dom'
-import Sidebar from './components/Sidebar'
-import Topbar from './components/Topbar'
-import PredictionForm from './components/PredictionForm'
-import DashboardPage from './components/DashboardPage'
-import AlertsPage from './components/AlertsPage'
-import ActivityPage from './components/ActivityPage'
-import InvestigationWorkspace from './components/InvestigationWorkspace'
-import SettingsPage from './components/SettingsPage'
-import ContractScanner from './components/ContractScanner'
-import { useData } from './context/DataContext'
-import * as tf from '@tensorflow/tfjs'
 import { motion, AnimatePresence } from 'framer-motion'
-import AnimatedBackground from './components/AnimatedBackground' // New component
+import { useState, useEffect } from 'react'
+import { ChevronRight, Shield, Lock, Eye, ShieldAlert } from 'lucide-react'
+import toast, { Toaster } from 'react-hot-toast'
 
-function App() {
-  const { data, setData, loading, setLoading, error, setError } = useData()
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  const severityMap = {
-    INFO: 20,
-    LOW: 40,
-    MEDIUM: 60,
-    HIGH: 80,
-    CRITICAL: 100
-  }
-
-  const handleSubmit = async ({ input, chain }) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const address = input.toLowerCase()
-      let transactions = []
-      let isToken = false
-      let alerts = []
-      let score = 0
-      let risks = []
-      let timeline = []
-      let predictiveRisk = 0
-      let reputationScore = 0
-
-      if (chain === 'ethereum') {
-        const apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY
-        if (apiKey) {
-          const ethResponse = await fetch(
-            `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${apiKey}`
-          )
-          const ethJson = await ethResponse.json()
-          if (ethJson.status === '1') transactions = ethJson.result
-
-          if (transactions.length === 0) {
-            const tokenResponse = await fetch(
-              `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${apiKey}`
-            )
-            const tokenJson = await tokenResponse.json()
-            if (tokenJson.status === '1') {
-              transactions = tokenJson.result
-              isToken = true
-            }
-          }
-        }
-
-        alerts = transactions.map(tx => {
-          const gasUsed = parseFloat(tx.gasUsed)
-          const value = parseFloat(tx.value) / (isToken ? 10 ** parseInt(tx.tokenDecimal) : 1e18)
-          const severity = gasUsed > 200000 || value > 10 ? 'HIGH' : 'LOW'
-          return {
-            type: severity.toLowerCase() === 'high' ? 'danger' : 'warning',
-            score: severityMap[severity] || 40,
-            date: new Date(tx.timeStamp * 1000).toLocaleString(),
-            message: `Unusual tx: Gas ${gasUsed.toLocaleString()} | Value ${value.toFixed(4)} ${isToken ? tx.tokenSymbol : 'ETH'}`
-          }
-        })
-
-        timeline = transactions.map(tx => ({
-          date: new Date(tx.timeStamp * 1000).toLocaleString(),
-          event: isToken
-            ? `Token transfer ${parseFloat(tx.value / (10 ** parseInt(tx.tokenDecimal))).toFixed(4)} ${tx.tokenSymbol} to ${tx.to.slice(0, 6)}...`
-            : `Transfer ${parseFloat(tx.value / 1e18).toFixed(4)} ETH to ${tx.to.slice(0, 6)}...`,
-          type: isToken ? 'token' : 'transfer'
-        }))
-
-        if (alerts.length > 0) score = Math.max(...alerts.map(a => a.score))
-        else if (transactions.length > 0) {
-          const txCount = transactions.length
-          const totalValue = transactions.reduce((sum, tx) => sum + parseFloat(tx.value / (isToken ? 10 ** parseInt(tx.tokenDecimal) : 1e18)), 0)
-          score = Math.min(100, txCount * 5 + (totalValue > 10 ? 50 : 0))
-        }
-
-        reputationScore = calculateReputationScore(address)
-
-      } else if (chain === 'solana') {
-        const quickNodeApiKey = import.meta.env.VITE_QUICKNODE_API_KEY
-        if (!quickNodeApiKey) throw new Error('QuickNode API key missing.')
-        const solResponse = await fetch(quickNodeApiKey, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "getSignaturesForAddress",
-            params: [address, { limit: 10 }]
-          })
-        })
-        if (!solResponse.ok) throw new Error(`Solana API error: ${solResponse.status}`)
-        const solJson = await solResponse.json()
-        if (solJson.result) {
-          transactions = solJson.result
-          timeline = transactions.map(tx => ({
-            date: new Date(tx.blockTime * 1000).toLocaleString(),
-            event: `Tx signature: ${tx.signature.slice(0, 6)}...`,
-            type: 'solana'
-          }))
-          score = Math.min(100, transactions.length * 10)
-          alerts = transactions.map(tx => ({
-            type: 'warning',
-            score: 40,
-            date: new Date(tx.blockTime * 1000).toLocaleString(),
-            message: `Tx detected: ${tx.signature.slice(0, 6)}...`
-          }))
-          reputationScore = calculateReputationScore(address)
-        } else throw new Error(solJson.error?.message || 'No result from Solana API')
-      } else if (chain === 'bsc') {
-        const bscApiKey = import.meta.env.VITE_BSCSCAN_API_KEY
-        if (bscApiKey) {
-          const bscResponse = await fetch(
-            `https://api.bscscan.com/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${bscApiKey}`
-          )
-          const bscJson = await bscResponse.json()
-          if (bscJson.status === '1') transactions = bscJson.result
-
-          if (transactions.length === 0) {
-            const tokenResponse = await fetch(
-              `https://api.bscscan.com/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&page=1&offset=10&sort=desc&apikey=${bscApiKey}`
-            )
-            const tokenJson = await tokenResponse.json()
-            if (tokenJson.status === '1') {
-              transactions = tokenJson.result
-              isToken = true
-            }
-          }
-        }
-
-        alerts = transactions.map(tx => {
-          const gasUsed = parseFloat(tx.gasUsed)
-          const value = parseFloat(tx.value) / (isToken ? 10 ** parseInt(tx.tokenDecimal) : 1e18)
-          const severity = gasUsed > 200000 || value > 10 ? 'HIGH' : 'LOW'
-          return {
-            type: severity.toLowerCase() === 'high' ? 'danger' : 'warning',
-            score: severityMap[severity] || 40,
-            date: new Date(tx.timeStamp * 1000).toLocaleString(),
-            message: `Unusual tx: Gas ${gasUsed.toLocaleString()} | Value ${value.toFixed(4)} ${isToken ? tx.tokenSymbol : 'BNB'}`
-          }
-        })
-
-        timeline = transactions.map(tx => ({
-          date: new Date(tx.timeStamp * 1000).toLocaleString(),
-          event: isToken
-            ? `Token transfer ${parseFloat(tx.value / (10 ** parseInt(tx.tokenDecimal))).toFixed(4)} ${tx.tokenSymbol} to ${tx.to.slice(0, 6)}...`
-            : `Transfer ${parseFloat(tx.value / 1e18).toFixed(4)} BNB to ${tx.to.slice(0, 6)}...`,
-          type: isToken ? 'token' : 'transfer'
-        }))
-
-        if (alerts.length > 0) score = Math.max(...alerts.map(a => a.score))
-        else if (transactions.length > 0) {
-          const txCount = transactions.length
-          const totalValue = transactions.reduce((sum, tx) => sum + parseFloat(tx.value / (isToken ? 10 ** parseInt(tx.tokenDecimal) : 1e18)), 0)
-          score = Math.min(100, txCount * 5 + (totalValue > 10 ? 50 : 0))
-        }
-        reputationScore = calculateReputationScore(address)
-      }
-
-      risks = [
-        { name: 'Liquidity', value: Math.random() * score },
-        { name: 'Ownership', value: Math.random() * score },
-        { name: 'Code', value: Math.random() * score },
-        { name: 'Social', value: Math.random() * score },
-        { name: 'Market', value: Math.random() * score },
-      ]
-
-      if (transactions.length > 1) {
-        const features = transactions.map(tx => [
-          parseFloat(tx.value / (isToken ? 10 ** parseInt(tx.tokenDecimal) : 1e18)),
-          parseFloat(tx.gasUsed || 0),
-          parseFloat(tx.cumulativeGasUsed || 0)
-        ])
-        const normalizedFeatures = tf.tensor2d(features)
-        const mean = normalizedFeatures.mean(0)
-        const variance = normalizedFeatures.sub(mean).square().mean(0)
-        const std = variance.sqrt().add(tf.scalar(1e-7))
-        const standardized = normalizedFeatures.sub(mean).div(std)
-
-        const inputDim = features[0].length
-        const model = tf.sequential()
-        model.add(tf.layers.dense({ units: 8, activation: 'relu', inputShape: [inputDim] }))
-        model.add(tf.layers.dense({ units: 4, activation: 'relu' }))
-        model.add(tf.layers.dense({ units: 8, activation: 'relu' }))
-        model.add(tf.layers.dense({ units: inputDim, activation: 'linear' }))
-        model.compile({ optimizer: 'adam', loss: 'meanSquaredError' })
-
-        await model.fit(standardized, standardized, { epochs: 50, batchSize: 32, verbose: 0 })
-        const reconstructed = model.predict(standardized)
-        const mse = standardized.sub(reconstructed).square().mean(1).dataSync()
-        const threshold = mse.sort((a, b) => a - b)[Math.floor(mse.length * 0.95)] || 0
-        const anomalies = mse.filter(err => err > threshold).length
-        predictiveRisk = Math.min(100, (anomalies / transactions.length) * 100)
-
-        risks.push({ name: 'Predictive', value: predictiveRisk })
-        score = Math.max(score, predictiveRisk)
-      }
-
-      score = Math.max(score, reputationScore)
-      setData({ score, risks, timeline, alerts, transactions, address, predictiveRisk, chain, reputationScore })
-      if (location.pathname !== '/dashboard') navigate('/dashboard') // Auto-navigate to dashboard
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+const DigitalRain = () => {
+  useEffect(() => {
+    const chars = '01'.split('')
+    const rain = document.querySelector('.digital-rain')
+    const createRainDrop = () => {
+      const column = document.createElement('div')
+      column.className = 'rain-column'
+      column.style.left = `${Math.random() * 100}%`
+      column.textContent = chars[Math.floor(Math.random() * chars.length)]
+      rain.appendChild(column)
+      setTimeout(() => rain.removeChild(column), 3000)
     }
-  }
+    const interval = setInterval(createRainDrop, 100)
+    return () => clearInterval(interval)
+  }, [])
+  return <div className="digital-rain" />
+}
 
-  const calculateReputationScore = (address) => {
-    const riskFactor = address.includes('0') ? 0.3 : address.includes('f') ? 0.7 : 0.5
-    const randomRisk = Math.random() * 50 + 20
-    return Math.min(100, Math.round(riskFactor * randomRisk))
-  }
-
-  const pageVariants = {
-    initial: { opacity: 0, y: 50 },
-    in: { opacity: 1, y: 0 },
-    out: { opacity: 0, y: -50 }
-  }
-  const pageTransition = { type: 'tween', ease: 'anticipate', duration: 0.5 }
-
+const ParticleEffect = () => {
   return (
-    <div className="flex h-screen overflow-hidden relative">
-      <AnimatedBackground />
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <motion.div
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          transition={{ type: 'spring', stiffness: 100 }}
-        >
-          <Topbar onSubmit={handleSubmit} />
-        </motion.div>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 z-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              variants={pageVariants}
-              initial="initial"
-              animate="in"
-              exit="out"
-              transition={pageTransition}
-            >
-              <Routes>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/activity" element={<ActivityPage />} />
-                <Route path="/investigation" element={<InvestigationWorkspace />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/contract-scanner" element={<ContractScanner />} />
-                <Route path="/" element={<PredictionForm onSubmit={handleSubmit} loading={loading} />} />
-              </Routes>
-              {error && <div className="text-danger mt-4 animate-pulse">{error}</div>}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
+    <div className="particle-container">
+      {[...Array(30)].map((_, i) => (
+        <div
+          key={i}
+          className={`particle particle-${i + 1}`}
+          style={{
+            '--x': `${Math.random() * 100}%`,
+            '--y': `${Math.random() * 100}%`,
+            '--duration': `${Math.random() * 20 + 10}s`,
+            '--delay': `${Math.random() * 5}s`,
+          }}
+        />
+      ))}
     </div>
   )
 }
 
-export default App
+const FloatingIcons = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div
+        className="absolute top-1/4 left-1/4 opacity-10"
+        animate={{
+          y: [0, -20, 0],
+          rotate: [0, 5, -5, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        <Shield size={200} strokeWidth={0.5} />
+      </motion.div>
+      <motion.div
+        className="absolute top-2/3 right-1/4 opacity-10"
+        animate={{
+          y: [0, 20, 0],
+          rotate: [0, -5, 5, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1
+        }}
+      >
+        <Lock size={150} strokeWidth={0.5} />
+      </motion.div>
+      <motion.div
+        className="absolute top-1/3 right-1/3 opacity-10"
+        animate={{
+          y: [0, -15, 0],
+          rotate: [0, 5, -5, 0],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{
+          duration: 5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 2
+        }}
+      >
+        <Eye size={100} strokeWidth={0.5} />
+      </motion.div>
+    </div>
+  )
+}
+
+export default function Home() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [emailError, setEmailError] = useState('')
+
+  const countdown = new Date('2025-09-01').getTime()
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft())
+
+  function calculateTimeLeft() {
+    const difference = countdown - Date.now()
+    return difference > 0 ? {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60)
+    } : { days: 0, hours: 0, minutes: 0, seconds: 0 }
+  }
+
+  useEffect(() => {
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const validateEmail = (value) => {
+    if (!value) return 'Email is required'
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(value)) return 'Invalid email address'
+    return ''
+  }
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value
+    setEmail(value)
+    setEmailError(validateEmail(value))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const validationError = validateEmail(email)
+    if (validationError) {
+      setEmailError(validationError)
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      if (!response.ok) throw new Error('Submission failed')
+      toast.success('Joined waitlist successfully!', { 
+        duration: 3000,
+        style: { background: '#1a202c', color: '#e2e8f0' }
+      })
+      setIsModalOpen(false)
+      setEmail('')
+    } catch (error) {
+      toast.error('Failed to join waitlist. Try again.', {
+        duration: 3000,
+        style: { background: '#1a202c', color: '#e2e8f0' }
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-primary text-gray-100 relative overflow-hidden font-sans perspective-1000">
+      <Toaster position="top-center" />
+      
+      {/* Cybersecurity Background Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="hex-grid" />
+        <DigitalRain />
+        <div className="absolute -inset-[10px] opacity-30">
+          <div className="absolute top-0 -left-4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
+          <div className="absolute top-0 -right-4 w-96 h-96 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-96 h-96 bg-emerald-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        </div>
+        <ParticleEffect />
+        <FloatingIcons />
+      </div>
+
+      {/* Content */}
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4">
+        {/* Countdown Banner */}
+        <motion.div
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="fixed top-0 left-0 w-full bg-secondary/40 backdrop-blur-md text-center py-3 z-50 border-b border-accent/20"
+        >
+          <div className="text-sm font-light tracking-wider">
+            <span className="text-accent neon-text">Public Launch in </span>
+            <motion.span 
+              className="font-mono font-bold text-white inline-flex gap-1"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <span className="bg-secondary/50 px-2 py-1 rounded">{timeLeft.days}d</span>:
+              <span className="bg-secondary/50 px-2 py-1 rounded">{timeLeft.hours}h</span>:
+              <span className="bg-secondary/50 px-2 py-1 rounded">{timeLeft.minutes}m</span>:
+              <span className="bg-secondary/50 px-2 py-1 rounded">{timeLeft.seconds}s</span>
+            </motion.span>
+          </div>
+        </motion.div>
+
+        {/* Hero Content */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="text-center max-w-3xl mx-auto pt-16 relative z-10"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="relative inline-block"
+          >
+            <motion.div
+              className="flex items-center justify-center gap-3 mb-6"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ShieldAlert size={48} className="text-accent" />
+              <h1 className="text-7xl sm:text-8xl font-bold bg-gradient-to-r from-accent via-cyan-400 to-emerald-400 text-transparent bg-clip-text neon-text">
+                DeSpy AI
+              </h1>
+            </motion.div>
+            <div className="absolute -inset-4 bg-gradient-to-r from-accent to-emerald-400 opacity-20 blur-xl rounded-full"></div>
+          </motion.div>
+          
+          <motion.p 
+            className="text-xl sm:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4 }}
+          >
+            Enterprise-Grade Web3 Security & Liquidity Protection
+          </motion.p>
+
+          <motion.button
+            className="cyber-button group relative bg-transparent text-accent px-10 py-5 rounded-lg font-semibold text-lg shadow-xl hover:shadow-accent/25 transition-all duration-500"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <span className="relative z-10 flex items-center gap-2 neon-text">
+              Join the Waitlist 
+              <motion.span
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <ChevronRight className="inline" />
+              </motion.span>
+            </span>
+          </motion.button>
+
+          <motion.p 
+            className="mt-8 text-gray-400 text-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.6 }}
+          >
+            Be the first to experience next-generation blockchain security
+          </motion.p>
+        </motion.div>
+      </div>
+
+      {/* Enhanced Waitlist Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-50 p-4"
+            onClick={() => setIsModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ duration: 0.4 }}
+              className="bg-secondary/90 backdrop-blur-xl p-8 rounded-2xl max-w-md w-full border border-accent/20 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className="text-3xl font-bold mb-6 neon-text">Join the Waitlist</h2>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="relative group">
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={handleEmailChange}
+                    className="w-full px-4 py-4 bg-primary/50 border border-accent/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-accent transition-all duration-300"
+                    placeholder="Enter your email"
+                    required
+                  />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-accent to-emerald-400 opacity-0 group-hover:opacity-20 blur transition-opacity duration-300"></div>
+                  {emailError && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-red-400 text-sm mt-2"
+                    >
+                      {emailError}
+                    </motion.p>
+                  )}
+                </div>
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="cyber-button group relative w-full bg-transparent border-accent text-accent px-6 py-4 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="relative z-10 neon-text">
+                    {isSubmitting ? 'Joining...' : 'Join Waitlist'}
+                  </span>
+                </motion.button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}

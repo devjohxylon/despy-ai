@@ -12,9 +12,17 @@ export default function TransactionGraph({ transactions, address }) {
   useEffect(() => {
     const chart = chartRef.current
     if (chart) {
+      console.log('Destroying previous chart instance')
       chart.destroy() // Destroy previous chart to avoid conflicts
+    } else {
+      console.log('No chart instance to destroy')
     }
   }, [transactions])
+
+  if (!transactions || transactions.length === 0) {
+    console.log('No transactions data to render graph')
+    return <div className="text-center text-text-secondary">No transactions available</div>
+  }
 
   const data = {
     labels: transactions.map(tx => tx.hash?.slice(0, 6) || tx.signature?.slice(0, 6) || 'Unknown'),
@@ -113,9 +121,9 @@ export default function TransactionGraph({ transactions, address }) {
   }
 
   return (
-    <div className="bg-primary/80 rounded-xl p-5 shadow-lg relative overflow-hidden">
+    <div className="bg-primary/80 rounded-xl p-5 shadow-lg relative overflow-hidden" style={{ minHeight: '400px' }}>
       <h2 className="text-text-secondary text-xl font-light mb-4">Transaction Graph (3D with Glowing Trails)</h2>
-      <div style={{ height: '400px', position: 'relative' }}>
+      <div style={{ height: '100%', position: 'relative' }}>
         <Bar ref={chartRef} data={data} options={options} />
       </div>
     </div>
