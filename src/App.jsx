@@ -2,8 +2,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { ChevronRight } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import DashboardPage from './components/DashboardPage'
 
-export default function Home() {
+// Landing Page Component
+function LandingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,65 +70,62 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 text-gray-50 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0B0F17] text-gray-50 relative overflow-hidden font-sans">
       <Toaster position="top-center" />
       
-      {/* Subtle gradient overlay */}
+      {/* Animated background effects */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-radial from-blue-950/20 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-radial from-blue-950/5 via-transparent to-transparent" />
+        <motion.div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, #1E40AF 0%, transparent 50%)',
+            filter: 'blur(120px)',
+            opacity: 0.07
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.07, 0.05, 0.07]
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at 80% 20%, #1E40AF 0%, transparent 40%)',
+            filter: 'blur(100px)',
+            opacity: 0.05
+          }}
+          animate={{
+            scale: [1.2, 1, 1.2],
+            opacity: [0.05, 0.07, 0.05]
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </div>
 
       {/* Content */}
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16">
-        {/* Countdown Banner */}
-        <motion.div
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="fixed top-0 left-0 w-full glass-panel py-3 z-50"
-        >
-          <div className="container mx-auto px-4">
-            <div className="text-sm font-light tracking-wider text-center">
-              <span className="text-gray-300">Public Launch in </span>
-              <motion.span 
-                className="font-mono font-medium text-white inline-flex gap-2"
-                animate={{ scale: [1, 1.01, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <span className="bg-gray-900/50 px-3 py-1 rounded">{timeLeft.days}d</span>
-                <span className="text-gray-400">:</span>
-                <span className="bg-gray-900/50 px-3 py-1 rounded">{timeLeft.hours}h</span>
-                <span className="text-gray-400">:</span>
-                <span className="bg-gray-900/50 px-3 py-1 rounded">{timeLeft.minutes}m</span>
-                <span className="text-gray-400">:</span>
-                <span className="bg-gray-900/50 px-3 py-1 rounded">{timeLeft.seconds}s</span>
-              </motion.span>
-            </div>
-          </div>
-        </motion.div>
-
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4">
         {/* Hero Content */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="text-center max-w-4xl mx-auto relative z-10"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="relative mb-8"
+        <div className="text-center space-y-6">
+          <motion.h1
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-6xl sm:text-7xl md:text-8xl font-bold mb-8"
           >
-            <motion.h1 
-              className="text-8xl sm:text-[12rem] font-bold heading-gradient leading-none"
+            <motion.span 
+              className="text-[#3B82F6] inline-block"
               animate={{ 
-                textShadow: [
-                  "0 0 20px rgba(56, 189, 248, 0.2)",
-                  "0 0 40px rgba(56, 189, 248, 0.3)",
-                  "0 0 20px rgba(56, 189, 248, 0.2)"
-                ]
+                opacity: [0.9, 1, 0.9],
               }}
               transition={{ 
                 duration: 4,
@@ -134,34 +134,73 @@ export default function Home() {
               }}
             >
               DeSpy AI
-            </motion.h1>
-          </motion.div>
-          
-          <motion.p 
-            className="text-xl sm:text-3xl text-gray-400 mb-16 max-w-2xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4 }}
-          >
-            Enterprise-Grade Web3 Security & Liquidity Protection Platform
-          </motion.p>
+            </motion.span>
+          </motion.h1>
 
-          <motion.button
-            className="btn-primary group relative text-lg"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsModalOpen(true)}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+            className="space-y-4"
           >
-            <span className="relative z-10 flex items-center gap-2">
-              Join the Waitlist 
-              <motion.span
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <ChevronRight className="inline" />
-              </motion.span>
-            </span>
-          </motion.button>
+            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
+              Protect your assets with AI-powered blockchain analysis, smart contract scanning,
+              and real-time security monitoring.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+            className="flex justify-center pt-8"
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsModalOpen(true)}
+              className="px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-lg flex items-center gap-2"
+            >
+              Join the Waitlist <ChevronRight size={20} />
+            </motion.button>
+          </motion.div>
+        </div>
+
+        {/* Countdown Banner - Now at bottom center */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="absolute bottom-12 left-0 right-0 z-50 text-gray-400"
+        >
+          <div className="text-base sm:text-lg font-light tracking-wider text-center">
+            <span className="text-gray-300">Public Launch in </span>
+            <motion.div 
+              className="font-mono font-medium text-gray-200 flex gap-3 justify-center items-center mt-4"
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <div className="flex flex-col items-center">
+                <span className="bg-gray-900/30 px-4 py-2 rounded text-2xl sm:text-3xl min-w-[3ch] text-center">{timeLeft.days}</span>
+                <span className="text-sm mt-1 text-gray-400">days</span>
+              </div>
+              <span className="text-2xl sm:text-3xl text-gray-500">:</span>
+              <div className="flex flex-col items-center">
+                <span className="bg-gray-900/30 px-4 py-2 rounded text-2xl sm:text-3xl min-w-[3ch] text-center">{timeLeft.hours}</span>
+                <span className="text-sm mt-1 text-gray-400">hours</span>
+              </div>
+              <span className="text-2xl sm:text-3xl text-gray-500">:</span>
+              <div className="flex flex-col items-center">
+                <span className="bg-gray-900/30 px-4 py-2 rounded text-2xl sm:text-3xl min-w-[3ch] text-center">{timeLeft.minutes}</span>
+                <span className="text-sm mt-1 text-gray-400">mins</span>
+              </div>
+              <span className="text-2xl sm:text-3xl text-gray-500">:</span>
+              <div className="flex flex-col items-center">
+                <span className="bg-gray-900/30 px-4 py-2 rounded text-2xl sm:text-3xl min-w-[3ch] text-center">{timeLeft.seconds}</span>
+                <span className="text-sm mt-1 text-gray-400">secs</span>
+              </div>
+            </motion.div>
+          </div>
         </motion.div>
       </div>
 
@@ -172,15 +211,15 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-50 p-4"
             onClick={() => setIsModalOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ duration: 0.4 }}
-              className="glass-panel p-8 max-w-md w-full"
+              className="bg-[#0B0F17] border border-gray-800 p-8 max-w-md w-full rounded-xl"
               onClick={e => e.stopPropagation()}
             >
               <h2 className="text-3xl font-bold mb-6 text-gray-50">Join the Waitlist</h2>
@@ -190,7 +229,7 @@ export default function Home() {
                     type="email"
                     value={email}
                     onChange={handleEmailChange}
-                    className="input-field"
+                    className="w-full bg-gray-900/50 border border-gray-800 text-gray-100 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter your email"
                     required
                   />
@@ -198,7 +237,7 @@ export default function Home() {
                     <motion.p 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-danger text-sm mt-2"
+                      className="text-red-400 text-sm mt-2"
                     >
                       {emailError}
                     </motion.p>
@@ -207,7 +246,7 @@ export default function Home() {
                 <motion.button
                   type="submit"
                   disabled={isSubmitting}
-                  className="btn-primary w-full"
+                  className="w-full px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-lg"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >
@@ -219,5 +258,20 @@ export default function Home() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+// Main App Component with Routing
+export default function App() {
+  const location = useLocation()
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
   )
 }

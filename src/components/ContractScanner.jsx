@@ -1,5 +1,7 @@
 // src/components/ContractScanner.jsx
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Search } from 'lucide-react'
 
 export default function ContractScanner() {
   const [contractCode, setContractCode] = useState('')
@@ -59,22 +61,37 @@ export default function ContractScanner() {
   }
 
   return (
-    <div className="p-4 bg-primary rounded-lg shadow-lg">
-      <h2 className="text-2xl text-accent mb-4">Advanced Smart Contract Scanner</h2>
-      <textarea
+    <div className="space-y-4">
+      <motion.textarea
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         value={contractCode}
         onChange={(e) => setContractCode(e.target.value)}
-        placeholder="Paste your Solidity code here..."
-        className="w-full h-64 p-2 bg-secondary border border-secondary rounded-lg mb-4"
+        placeholder="Paste your Solidity smart contract code here..."
+        className="w-full h-64 bg-gray-900/50 text-gray-300 border border-gray-800 rounded-lg p-4 font-mono text-sm focus:outline-none focus:border-sky-600 transition-colors duration-200"
       />
-      <button
-        onClick={scanContract}
-        disabled={loading}
-        className="bg-accent text-primary px-4 py-2 rounded-lg flex items-center space-x-1"
-      >
-        {loading ? 'Scanning...' : 'Scan Contract'}
-      </button>
-      {scanResult && <pre className="mt-4 text-text-secondary whitespace-pre-wrap">{scanResult}</pre>}
+      <div className="flex justify-end">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={scanContract}
+          disabled={loading || !contractCode.trim()}
+          className="btn-primary flex items-center gap-2 px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Search size={18} />
+          <span>{loading ? 'Scanning...' : 'Scan Contract'}</span>
+        </motion.button>
+      </div>
+      {scanResult && (
+        <motion.pre
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-4 p-4 bg-gray-900/50 border border-gray-800 rounded-lg text-sm font-mono text-gray-300 whitespace-pre-wrap"
+        >
+          {scanResult}
+        </motion.pre>
+      )}
     </div>
   )
 }

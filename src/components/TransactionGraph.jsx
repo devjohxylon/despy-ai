@@ -1,42 +1,45 @@
 // src/components/TransactionGraph.jsx
 import { Bar } from 'react-chartjs-2'
-import Chart from 'chart.js/auto'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
-import { useEffect, useRef } from 'react'
 
-Chart.register(ChartDataLabels)
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartDataLabels
+)
 
 export default function TransactionGraph({ transactions, address }) {
-  const chartRef = useRef(null)
-
-  useEffect(() => {
-    const chart = chartRef.current
-    if (chart) {
-      console.log('Destroying previous chart instance')
-      chart.destroy() // Destroy previous chart to avoid conflicts
-    } else {
-      console.log('No chart instance to destroy')
-    }
-  }, [transactions])
-
   if (!transactions || transactions.length === 0) {
-    console.log('No transactions data to render graph')
-    return <div className="text-center text-text-secondary">No transactions available</div>
+    return (
+      <div className="glass-panel p-6">
+        <div className="text-center text-gray-400">No transactions available</div>
+      </div>
+    )
   }
 
   const data = {
-    labels: transactions.map(tx => tx.hash?.slice(0, 6) || tx.signature?.slice(0, 6) || 'Unknown'),
+    labels: transactions.map(tx => tx.hash?.slice(0, 6) || 'Unknown'),
     datasets: [{
-      label: `Transactions for ${address}`,
-      data: transactions.map(tx => parseFloat(tx.value || 0) / (tx.tokenDecimal ? 10 ** parseInt(tx.tokenDecimal) : 1e18) || 0),
-      backgroundColor: ctx => {
-        const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200)
-        gradient.addColorStop(0, 'rgba(75, 192, 192, 0.8)')
-        gradient.addColorStop(1, 'rgba(75, 192, 192, 0.2)')
-        return gradient
-      },
-      borderColor: 'rgba(75, 192, 192, 1)',
-      borderWidth: 2,
+      label: `Transactions for ${address?.slice(0, 8)}...`,
+      data: transactions.map(tx => parseFloat(tx.value || 0) / (tx.tokenDecimal ? 10 ** parseInt(tx.tokenDecimal) : 1e18)),
+      backgroundColor: 'rgba(56, 189, 248, 0.5)',
+      borderColor: 'rgba(56, 189, 248, 1)',
+      borderWidth: 1,
+      borderRadius: 4,
       barPercentage: 0.7,
       categoryPercentage: 0.7
     }]
@@ -46,85 +49,81 @@ export default function TransactionGraph({ transactions, address }) {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 2000,
-      easing: 'easeOutBounce'
+      duration: 1000,
+      easing: 'easeOutQuart'
     },
     scales: {
-      x: { title: { display: true, text: 'Transaction IDs', color: '#a0aec0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-      y: { title: { display: true, text: 'Value (in Native Units)', color: '#a0aec0' }, beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
-    },
-    plugins: [
-      {
-        legend: { position: 'top', labels: { color: '#e2e8f0' } },
-        datalabels: {
-          color: '#fff',
-          font: { size: 14, weight: 'bold' },
-          formatter: (value, ctx) => `${value.toFixed(4)} ${transactions[ctx.dataIndex].tokenSymbol || 'ETH'}`,
-          anchor: 'end',
-          align: 'top',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          borderRadius: 4,
-          padding: 2
+      x: {
+        grid: {
+          color: 'rgba(148, 163, 184, 0.1)'
         },
-        tooltip: {
-          callbacks: {
-            label: (tooltipItem) => {
-              const tx = transactions[tooltipItem.dataIndex]
-              return [
-                `Hash: ${tx.hash || tx.signature || 'N/A'}`,
-                `Value: ${tooltipItem.raw.toFixed(4)} ${tx.tokenSymbol || 'ETH'}`,
-                `Gas: ${parseFloat(tx.gasUsed || 0).toLocaleString()}`
-              ]
-            }
-          },
-          backgroundColor: 'rgba(26, 32, 44, 0.9)',
-          titleColor: '#e2e8f0',
-          bodyColor: '#a0aec0'
+        ticks: {
+          color: 'rgb(148, 163, 184)'
+        }
+      },
+      y: {
+        grid: {
+          color: 'rgba(148, 163, 184, 0.1)'
         },
-        beforeDraw: (chart) => {
-          const ctx = chart.ctx
-          ctx.save()
-
-          // Custom background gradient
-          const gradientBg = ctx.createLinearGradient(0, 0, chart.width, chart.height)
-          gradientBg.addColorStop(0, 'rgba(0, 0, 0, 0.3)')
-          gradientBg.addColorStop(1, 'rgba(0, 0, 0, 0.8)')
-          ctx.fillStyle = gradientBg
-          ctx.fillRect(0, 0, chart.width, chart.height)
-
-          // Glowing trails
-          ctx.beginPath()
-          transactions.forEach((tx, index) => {
-            const x = chart.scales.x.getPixelForValue(index)
-            const y = chart.scales.y.getPixelForValue(parseFloat(tx.value || 0) / (tx.tokenDecimal ? 10 ** parseInt(tx.tokenDecimal) : 1e18) || 0)
-            ctx.moveTo(x, chart.height)
-            ctx.lineTo(x, y)
-            const gradientGlow = ctx.createRadialGradient(x, y, 0, x, y, 20)
-            gradientGlow.addColorStop(0, 'rgba(75, 192, 192, 0.8)')
-            gradientGlow.addColorStop(0.5, 'rgba(75, 192, 192, 0.4)')
-            gradientGlow.addColorStop(1, 'rgba(75, 192, 192, 0)')
-            ctx.strokeStyle = gradientGlow
-            ctx.lineWidth = 2
-            ctx.stroke()
-          })
-          ctx.closePath()
-
-          // Subtle background overlay
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'
-          ctx.fillRect(0, 0, chart.width, chart.height)
-          ctx.restore()
-        },
-        id: 'customCanvasEffects'
+        ticks: {
+          color: 'rgb(148, 163, 184)'
+        }
       }
-    ],
-    rotation: -0.5 // Enhanced 3D tilt
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          color: 'rgb(148, 163, 184)',
+          font: {
+            size: 12
+          }
+        }
+      },
+      datalabels: {
+        color: 'rgb(226, 232, 240)',
+        anchor: 'end',
+        align: 'top',
+        offset: 4,
+        font: {
+          size: 11
+        },
+        formatter: (value, ctx) => {
+          const tx = transactions[ctx.dataIndex]
+          return `${value.toFixed(4)} ${tx.tokenSymbol || 'ETH'}`
+        }
+      },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleColor: 'rgb(226, 232, 240)',
+        bodyColor: 'rgb(148, 163, 184)',
+        borderColor: 'rgba(56, 189, 248, 0.2)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        callbacks: {
+          label: (context) => {
+            const tx = transactions[context.dataIndex]
+            return [
+              `Value: ${context.parsed.y.toFixed(4)} ${tx.tokenSymbol || 'ETH'}`,
+              `Gas Used: ${parseInt(tx.gasUsed || 0).toLocaleString()}`,
+              `Hash: ${tx.hash}`
+            ]
+          }
+        }
+      }
+    }
   }
 
   return (
-    <div className="bg-primary/80 rounded-xl p-5 shadow-lg relative overflow-hidden" style={{ minHeight: '400px' }}>
-      <h2 className="text-text-secondary text-xl font-light mb-4">Transaction Graph (3D with Glowing Trails)</h2>
-      <div style={{ height: '100%', position: 'relative' }}>
-        <Bar ref={chartRef} data={data} options={options} />
+    <div className="glass-panel p-6">
+      <h2 className="text-gray-400 text-xl font-light mb-6">Transaction History</h2>
+      <div className="h-[400px] relative">
+        <Bar data={data} options={options} />
       </div>
     </div>
   )
