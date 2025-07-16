@@ -1,5 +1,5 @@
 // src/components/PredictionForm.jsx
-import { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, AlertCircle, Code2, ChevronDown } from 'lucide-react'
 import { useData } from '../context/DataContext'
@@ -37,10 +37,10 @@ const buttonVariants = {
   }
 }
 
-export default function PredictionForm() {
+export default function PredictionForm({ resultsRef }) {
+  const [mode, setMode] = useState('address')
   const [input, setInput] = useState('')
   const [chain, setChain] = useState('ethereum')
-  const [mode, setMode] = useState('address')
   const [isChainOpen, setIsChainOpen] = useState(false)
   const { loading, error, analyzeAddress, analyzeContract } = useData()
 
@@ -52,6 +52,14 @@ export default function PredictionForm() {
       } else {
         analyzeContract(input.trim(), chain)
       }
+      
+      // Smooth scroll to results after a short delay
+      setTimeout(() => {
+        resultsRef?.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        })
+      }, 800)
     }
   }
 
@@ -259,9 +267,9 @@ export default function PredictionForm() {
                     className="relative"
                   >
                     <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
                       placeholder={`Enter ${chain} address to analyze...`}
                       className="w-full bg-gray-900/50 text-gray-300 border border-gray-800 rounded-lg p-4 focus:outline-none focus:border-sky-600 transition-all duration-200 placeholder-gray-600"
                     />
@@ -295,10 +303,10 @@ export default function PredictionForm() {
               className="flex items-center justify-end gap-4 mt-8"
               variants={itemVariants}
             >
-              <motion.button
+      <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                type="submit"
+        type="submit"
                 disabled={loading || !input.trim()}
                 className={`relative overflow-hidden px-8 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed min-w-[160px] ${
                   mode === 'address' 
@@ -321,7 +329,7 @@ export default function PredictionForm() {
                     }
                   </span>
                 </span>
-              </motion.button>
+      </motion.button>
             </motion.div>
 
             <AnimatePresence>
@@ -338,7 +346,7 @@ export default function PredictionForm() {
               )}
             </AnimatePresence>
           </motion.div>
-        </form>
+    </form>
       </motion.div>
     </div>
   )

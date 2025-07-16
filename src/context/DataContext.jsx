@@ -1,200 +1,407 @@
 // src/context/DataContext.jsx
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { useAuth } from '@clerk/clerk-react'
 
 const DataContext = createContext()
 
-// Address validation functions
+// Security constants
+const MAX_CODE_SIZE = 1024 * 1024 // 1MB
+const MAX_REQUESTS_PER_MINUTE = 30
+const REQUEST_TIMEOUT = 30000 // 30 seconds
+
+// Rate limiting
+const requestCounts = new Map()
+const resetTime = new Map()
+
+// Address validation with strict regex
 const isValidEthereumAddress = (address) => {
-  return /^0x[a-fA-F0-9]{40}$/.test(address)
+  return /^0x[a-fA-F0-9]{40}$/i.test(address?.trim())
 }
 
 const isValidSolanaAddress = (address) => {
-  // Solana addresses are 32-44 characters long and use base58 encoding
-  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/i.test(address?.trim())
 }
 
-// Contract scanning function
+// Sanitize input
+const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return ''
+  return input
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/[^\w\s-:]/g, '') // Remove special characters except allowed ones
+    .trim()
+}
+
+// Contract scanning with improved security checks
 const scanContract = (code) => {
-  const lines = code.split('\n')
+  if (!code || typeof code !== 'string') {
+    throw new Error('Invalid contract code')
+  }
+
+  if (code.length > MAX_CODE_SIZE) {
+    throw new Error('Contract code size exceeds limit')
+  }
+
+  const sanitizedCode = code.replace(/<[^>]*>/g, '') // Remove potential XSS
+  const lines = sanitizedCode.split('\n')
   let issues = []
   let riskLevel = 'LOW'
 
   // Advanced vulnerability checks
+  const vulnerabilityPatterns = {
+    reentrancy: {
+      pattern: /(transfer|send|call)(?![a-zA-Z])/,
+      requireCheck: /(require|revert|assert).*\}/,
+      type: 'critical',
+      description: 'Potential reentrancy vulnerability',
+      recommendation: 'Implement checks-effects-interactions pattern and consider using ReentrancyGuard.'
+    },
+    overflow: {
+      pattern: /(\+\+|\-\-)(?![a-zA-Z])/,
+      safeCheck: /SafeMath|0\.8\./,
+      type: 'high',
+      description: 'Possible integer overflow/underflow',
+      recommendation: 'Use SafeMath library or Solidity 0.8+ built-in overflow checks.'
+    },
+    uncheckedCall: {
+      pattern: /\.(call|delegatecall)\{/,
+      requireCheck: /(require|revert|assert).*\}/,
+      type: 'medium',
+      description: 'Unchecked external call',
+      recommendation: 'Add success checks and error handling for external calls.'
+    },
+    // Add more security patterns here
+  }
+
+  let context = ''
   lines.forEach((line, index) => {
     const trimmedLine = line.trim()
+    context += trimmedLine + '\n'
 
-    // Reentrancy detection
-    if (trimmedLine.includes('transfer') || trimmedLine.includes('send') || trimmedLine.includes('call')) {
-      if (!trimmedLine.includes('require') && !trimmedLine.includes('revert')) {
-        issues.push({
-          type: 'critical',
-          line: index + 1,
-          description: `Potential reentrancy vulnerability in '${trimmedLine.split('(')[0]}'`,
-          recommendation: 'Implement checks-effects-interactions pattern and consider using ReentrancyGuard.'
-        })
-        riskLevel = 'CRITICAL'
+    // Keep only last 5 lines of context
+    const contextLines = context.split('\n').slice(-5)
+    context = contextLines.join('\n')
+
+    Object.entries(vulnerabilityPatterns).forEach(([key, pattern]) => {
+      if (pattern.pattern.test(trimmedLine)) {
+        // Check surrounding context for safety checks
+        const isSafe = pattern.requireCheck?.test(context) || pattern.safeCheck?.test(context)
+        
+        if (!isSafe) {
+          issues.push({
+            type: pattern.type,
+            line: index + 1,
+            description: `${pattern.description} in '${trimmedLine}'`,
+            recommendation: pattern.recommendation,
+            context: contextLines.join('\n')
+          })
+
+          if (pattern.type === 'critical') riskLevel = 'CRITICAL'
+          else if (pattern.type === 'high' && riskLevel !== 'CRITICAL') riskLevel = 'HIGH'
+          else if (pattern.type === 'medium' && !['CRITICAL', 'HIGH'].includes(riskLevel)) riskLevel = 'MEDIUM'
+        }
       }
-    }
-
-    // Integer overflow/underflow
-    if ((trimmedLine.includes('++') || trimmedLine.includes('--')) && !trimmedLine.includes('SafeMath')) {
-      issues.push({
-        type: 'high',
-        line: index + 1,
-        description: `Possible integer overflow/underflow in '${trimmedLine}'`,
-        recommendation: 'Use SafeMath library or Solidity 0.8+ built-in overflow checks.'
-      })
-      riskLevel = riskLevel === 'CRITICAL' ? 'CRITICAL' : 'HIGH'
-    }
-
-    // Unchecked external calls
-    if (trimmedLine.includes('.call') || trimmedLine.includes('.delegatecall')) {
-      if (!trimmedLine.includes('require') && !trimmedLine.includes('revert')) {
-        issues.push({
-          type: 'medium',
-          line: index + 1,
-          description: `Unchecked external call in '${trimmedLine}'`,
-          recommendation: 'Add success checks and error handling for external calls.'
-        })
-        riskLevel = riskLevel === 'CRITICAL' || riskLevel === 'HIGH' ? riskLevel : 'MEDIUM'
-      }
-    }
-
-    // Missing events for state changes
-    if (trimmedLine.includes('state') && !trimmedLine.includes('emit')) {
-      issues.push({
-        type: 'low',
-        line: index + 1,
-        description: `State change in '${trimmedLine}' lacks event emission`,
-        recommendation: 'Emit events for state changes to improve transparency.'
-      })
-    }
+    })
   })
 
   return { issues, riskLevel }
 }
 
-// Mock data for testing
-const generateMockData = (address, chain) => {
-  // Generate 10 mock transactions
-  const transactions = Array.from({ length: 10 }, (_, i) => ({
-    hash: `0x${Math.random().toString(16).slice(2, 10)}...`,
-    value: (Math.random() * 10).toString(),
-    tokenDecimal: '18',
-    tokenSymbol: chain === 'ethereum' ? 'ETH' : 'SOL',
-    gasUsed: Math.floor(Math.random() * 100000).toString(),
-    timestamp: new Date(Date.now() - i * 86400000).toISOString() // Last 10 days
-  }))
-
-  // Generate risk metrics
-  const risks = {
-    liquidity: 35 + Math.random() * 30,
-    volatility: 40 + Math.random() * 30,
-    concentration: 25 + Math.random() * 40,
-    manipulation: 15 + Math.random() * 25,
-    smartContract: 20 + Math.random() * 35
+// Rate limiting function
+const checkRateLimit = (userId) => {
+  const now = Date.now()
+  
+  if (!requestCounts.has(userId)) {
+    requestCounts.set(userId, 1)
+    resetTime.set(userId, now + 60000) // Reset after 1 minute
+    return true
   }
 
-  // Generate timeline events
+  if (now > resetTime.get(userId)) {
+    requestCounts.set(userId, 1)
+    resetTime.set(userId, now + 60000)
+    return true
+  }
+
+  const currentCount = requestCounts.get(userId)
+  if (currentCount >= MAX_REQUESTS_PER_MINUTE) {
+    return false
+  }
+
+  requestCounts.set(userId, currentCount + 1)
+  return true
+}
+
+// Enhanced mock data for testing
+const generateMockData = (address, chain) => {
+  const isEthereum = chain === 'ethereum'
+  const tokenSymbol = isEthereum ? 'ETH' : 'SOL'
+  
+  // Create a realistic wallet profile based on address
+  const addressHash = address.slice(-8)
+  const walletType = parseInt(addressHash, 16) % 4 // 0-3 for different wallet types
+  
+  // Define wallet profiles
+  const walletProfiles = {
+    0: { // DeFi Whale
+      name: 'DeFi Whale',
+      description: 'High-volume DeFi trader with sophisticated strategies',
+      riskLevel: 'high',
+      transactionPattern: 'frequent_large',
+      protocols: ['Uniswap V3', 'Aave', 'Compound', 'Curve'],
+      avgTransactionValue: isEthereum ? 25.5 : 1200,
+      transactionCount: 45
+    },
+    1: { // MEV Bot
+      name: 'MEV Bot',
+      description: 'Sophisticated arbitrage bot with consistent profits',
+      riskLevel: 'medium',
+      transactionPattern: 'high_frequency',
+      protocols: ['Uniswap V2', 'SushiSwap', 'Balancer'],
+      avgTransactionValue: isEthereum ? 0.8 : 50,
+      transactionCount: 120
+    },
+    2: { // NFT Collector
+      name: 'NFT Collector',
+      description: 'Active NFT trader and collector',
+      riskLevel: 'low',
+      transactionPattern: 'nft_focused',
+      protocols: ['OpenSea', 'Blur', 'LooksRare'],
+      avgTransactionValue: isEthereum ? 3.2 : 150,
+      transactionCount: 28
+    },
+    3: { // Regular User
+      name: 'Regular User',
+      description: 'Standard crypto user with normal activity',
+      riskLevel: 'low',
+      transactionPattern: 'normal',
+      protocols: ['Uniswap V1', 'MetaMask'],
+      avgTransactionValue: isEthereum ? 1.5 : 75,
+      transactionCount: 15
+    }
+  }
+  
+  const profile = walletProfiles[walletType]
+  
+  // Generate realistic transactions based on wallet profile
+  const transactions = Array.from({ length: profile.transactionCount }, (_, i) => {
+    let value, gasUsed, type, details
+    
+    switch (profile.transactionPattern) {
+      case 'frequent_large':
+        value = (profile.avgTransactionValue * (0.5 + Math.random() * 1.5)).toFixed(3)
+        gasUsed = Math.floor(150000 + Math.random() * 300000)
+        type = i % 5 === 0 ? 'large_transfer' : 'defi_interaction'
+        details = i % 5 === 0 ? 'Large liquidity provision' : 'DeFi protocol interaction'
+        break
+      case 'high_frequency':
+        value = (profile.avgTransactionValue * (0.2 + Math.random() * 0.8)).toFixed(4)
+        gasUsed = Math.floor(80000 + Math.random() * 120000)
+        type = 'arbitrage'
+        details = 'MEV arbitrage transaction'
+        break
+      case 'nft_focused':
+        value = (profile.avgTransactionValue * (0.3 + Math.random() * 1.2)).toFixed(3)
+        gasUsed = Math.floor(100000 + Math.random() * 200000)
+        type = i % 3 === 0 ? 'nft_mint' : 'nft_trade'
+        details = i % 3 === 0 ? 'NFT mint transaction' : 'NFT marketplace trade'
+        break
+      default: // normal
+        value = (profile.avgTransactionValue * (0.4 + Math.random() * 1.1)).toFixed(3)
+        gasUsed = Math.floor(50000 + Math.random() * 100000)
+        type = 'normal'
+        details = 'Standard transaction'
+        break
+    }
+    
+    return {
+      hash: `0x${Math.random().toString(16).slice(2, 42)}`,
+      value,
+      tokenDecimal: isEthereum ? '18' : '9',
+      tokenSymbol,
+      gasUsed: gasUsed.toString(),
+      timestamp: new Date(Date.now() - i * 3600000 * (1 + Math.random() * 3)).toISOString(),
+      type,
+      from: `0x${Math.random().toString(16).slice(2, 42)}`,
+      to: address,
+      status: Math.random() > 0.02 ? 'success' : 'failed',
+      details
+    }
+  })
+
+  // Generate realistic risk metrics based on wallet profile
+  const baseRisks = {
+    liquidity: profile.riskLevel === 'high' ? 65 : profile.riskLevel === 'medium' ? 45 : 25,
+    volatility: profile.riskLevel === 'high' ? 75 : profile.riskLevel === 'medium' ? 55 : 35,
+    concentration: profile.riskLevel === 'high' ? 70 : profile.riskLevel === 'medium' ? 50 : 30,
+    manipulation: profile.riskLevel === 'high' ? 60 : profile.riskLevel === 'medium' ? 40 : 20,
+    smartContract: profile.riskLevel === 'high' ? 55 : profile.riskLevel === 'medium' ? 35 : 25
+  }
+  
+  const risks = Object.fromEntries(
+    Object.entries(baseRisks).map(([key, value]) => [
+      key, 
+      Math.floor(value + (Math.random() - 0.5) * 20)
+    ])
+  )
+
+  // Generate timeline events that tell a story
   const timeline = [
     {
       id: 1,
       type: 'success',
-      event: 'Contract Deployed',
-      timestamp: new Date(Date.now() - 30 * 86400000).toISOString(),
-      details: 'Smart contract successfully deployed and verified'
+      event: 'Wallet Creation',
+      timestamp: new Date(Date.now() - 60 * 86400000).toISOString(),
+      details: `Wallet created and received initial ${(10 + Math.random() * 40).toFixed(2)} ${tokenSymbol}`,
+      category: 'creation'
     },
     {
       id: 2,
       type: 'info',
-      event: 'Liquidity Added',
-      timestamp: new Date(Date.now() - 25 * 86400000).toISOString(),
-      details: `Initial liquidity pool created with ${(Math.random() * 100).toFixed(2)} ${chain === 'ethereum' ? 'ETH' : 'SOL'}`
+      event: 'First DeFi Interaction',
+      timestamp: new Date(Date.now() - 45 * 86400000).toISOString(),
+      details: `First interaction with ${profile.protocols[0]} - ${profile.description.toLowerCase()}`,
+      category: 'defi'
     },
-    {
+    ...(profile.riskLevel === 'high' ? [{
       id: 3,
       type: 'warning',
-      event: 'Large Transfer Detected',
-      timestamp: new Date(Date.now() - 15 * 86400000).toISOString(),
-      details: 'Unusual transfer pattern detected from major holder'
-    },
-    {
+      event: 'High-Value Transaction',
+      timestamp: new Date(Date.now() - 35 * 86400000).toISOString(),
+      details: `Large transfer of ${(100 + Math.random() * 300).toFixed(2)} ${tokenSymbol} detected`,
+      category: 'transaction'
+    }] : []),
+    ...(profile.transactionPattern === 'high_frequency' ? [{
       id: 4,
       type: 'info',
-      event: 'New Trading Pair',
-      timestamp: new Date(Date.now() - 10 * 86400000).toISOString(),
-      details: 'New trading pair established with USDT'
-    },
+      event: 'MEV Bot Detection',
+      timestamp: new Date(Date.now() - 25 * 86400000).toISOString(),
+      details: 'Address identified as sophisticated MEV arbitrage bot',
+      category: 'analysis'
+    }] : []),
     {
       id: 5,
-      type: 'error',
-      event: 'Failed Transaction',
-      timestamp: new Date(Date.now() - 5 * 86400000).toISOString(),
-      details: 'Multiple failed transaction attempts detected'
+      type: 'info',
+      event: 'Protocol Diversity',
+      timestamp: new Date(Date.now() - 20 * 86400000).toISOString(),
+      details: `Interacted with ${profile.protocols.length} different DeFi protocols`,
+      category: 'defi'
+    },
+    ...(profile.transactionPattern === 'nft_focused' ? [{
+      id: 6,
+      type: 'info',
+      event: 'NFT Collection Activity',
+      timestamp: new Date(Date.now() - 15 * 86400000).toISOString(),
+      details: `Minted ${Math.floor(3 + Math.random() * 8)} NFTs from verified collections`,
+      category: 'nft'
+    }] : []),
+    {
+      id: 7,
+      type: 'success',
+      event: 'Staking Activity',
+      timestamp: new Date(Date.now() - 10 * 86400000).toISOString(),
+      details: `Staked ${(50 + Math.random() * 200).toFixed(2)} ${tokenSymbol} in validator`,
+      category: 'staking'
     },
     {
-      id: 6,
-      type: 'success',
-      event: 'Security Audit Completed',
+      id: 8,
+      type: profile.riskLevel === 'high' ? 'warning' : 'info',
+      event: 'Recent Activity Pattern',
       timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
-      details: 'Smart contract successfully audited by trusted firm'
+      details: `${profile.transactionPattern === 'high_frequency' ? 'High-frequency trading' : 'Normal activity'} pattern detected`,
+      category: 'activity'
     }
   ]
 
-  // Generate alerts
+  // Generate alerts based on wallet profile and risk level
   const alerts = [
-    {
+    ...(profile.riskLevel === 'high' ? [{
       id: 1,
       type: 'critical',
-      message: 'Large Token Transfer Pattern Detected',
-      timestamp: new Date(Date.now() - 1 * 3600000).toISOString(),
-      details: 'Multiple large transfers (>5% of total supply) detected in the last hour from major holders.',
-      recommendation: 'Monitor closely for potential dump. Consider implementing transfer limits.'
-    },
-    {
+      message: 'High-Risk Trading Patterns',
+      timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+      details: `Address shows ${profile.transactionPattern === 'frequent_large' ? 'large-value trading patterns' : 'high-frequency arbitrage'} with ${profile.transactionCount} transactions in 45 days.`,
+      recommendation: 'Monitor for potential market manipulation. Consider implementing trading limits.',
+      severity: 85,
+      category: 'trading'
+    }] : []),
+    ...(profile.transactionPattern === 'high_frequency' ? [{
       id: 2,
       type: 'warning',
-      message: 'Unusual Trading Volume Spike',
-      timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
-      details: 'Trading volume increased by 300% in the last 2 hours.',
-      recommendation: 'Check for market manipulation or coordinated trading activity.'
-    },
+      message: 'MEV Bot Activity Detected',
+      timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
+      details: `Sophisticated arbitrage patterns detected. Success rate: ${(85 + Math.random() * 12).toFixed(1)}%.`,
+      recommendation: 'Consider flagging as institutional/bot traffic for analytics.',
+      severity: 65,
+      category: 'mev'
+    }] : []),
     {
       id: 3,
       type: 'info',
-      message: 'New Contract Interaction',
-      timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
-      details: 'Contract interacted with a newly deployed DEX router.',
-      recommendation: 'Verify the new DEX router contract for legitimacy.'
+      message: 'Multi-Protocol Activity',
+      timestamp: new Date(Date.now() - 6 * 3600000).toISOString(),
+      details: `Active on ${profile.protocols.length} different protocols: ${profile.protocols.join(', ')}.`,
+      recommendation: 'Monitor for cross-protocol arbitrage opportunities.',
+      severity: 35,
+      category: 'defi'
     },
-    {
+    ...(profile.riskLevel === 'medium' ? [{
       id: 4,
       type: 'warning',
-      message: 'Liquidity Pool Changes',
-      timestamp: new Date(Date.now() - 6 * 3600000).toISOString(),
-      details: '20% of liquidity removed from main trading pair.',
-      recommendation: 'Monitor for further liquidity removals. Check holder announcements.'
-    },
+      message: 'Moderate Risk Exposure',
+      timestamp: new Date(Date.now() - 8 * 3600000).toISOString(),
+      details: `Address shows moderate risk patterns with ${profile.transactionCount} transactions.`,
+      recommendation: 'Continue monitoring for unusual activity patterns.',
+      severity: 55,
+      category: 'risk'
+    }] : []),
     {
       id: 5,
-      type: 'critical',
-      message: 'Smart Contract Vulnerability',
-      timestamp: new Date(Date.now() - 8 * 3600000).toISOString(),
-      details: 'Potential reentrancy vulnerability detected in token contract.',
-      recommendation: 'Immediate audit recommended. Consider pausing transfers if possible.'
+      type: 'info',
+      message: 'Network Activity Analysis',
+      timestamp: new Date(Date.now() - 12 * 3600000).toISOString(),
+      details: `Total transaction value: ${(profile.avgTransactionValue * profile.transactionCount).toFixed(2)} ${tokenSymbol}. Average: ${profile.avgTransactionValue.toFixed(2)} ${tokenSymbol}.`,
+      recommendation: 'Track wallet for potential whale movements.',
+      severity: 25,
+      category: 'analytics'
     }
   ]
+
+  // Calculate sophisticated metrics
+  const criticalAlerts = alerts.filter(a => a.type === 'critical').length
+  const warningAlerts = alerts.filter(a => a.type === 'warning').length
+  const totalValue = transactions.reduce((sum, tx) => sum + parseFloat(tx.value), 0)
+  const avgRisk = Object.values(risks).reduce((sum, risk) => sum + risk, 0) / Object.keys(risks).length
+  
+  // Calculate composite scores based on profile
+  const baseScore = profile.riskLevel === 'high' ? 35 : profile.riskLevel === 'medium' ? 65 : 85
+  const score = Math.max(0, Math.min(100, baseScore - (criticalAlerts * 15) - (warningAlerts * 5)))
+  const reputationScore = Math.max(0, Math.min(100, 100 - (criticalAlerts * 20) - (warningAlerts * 10)))
+  const predictiveRisk = Math.min(100, Math.floor(avgRisk + (criticalAlerts * 10) + (warningAlerts * 5)))
 
   return {
     address,
     chain,
-    score: Math.floor(Math.random() * 100),
+    score,
     risks,
     timeline,
     alerts,
     transactions,
-    predictiveRisk: 25 + Math.random() * 50,
-    reputationScore: Math.floor(Math.random() * 100),
+    predictiveRisk,
+    reputationScore,
+    walletProfile: profile,
+    // Additional metrics for enhanced analytics
+    analytics: {
+      totalTransactionValue: totalValue.toFixed(3),
+      averageTransactionValue: (totalValue / transactions.length).toFixed(3),
+      transactionFrequency: Math.floor(transactions.length / 45), // per day over 45 days
+      criticalRiskCount: criticalAlerts,
+      warningRiskCount: warningAlerts,
+      riskTrend: profile.riskLevel === 'high' ? 'increasing' : 'stable',
+      confidenceScore: Math.floor(80 + Math.random() * 15), // 80-95%
+      lastAnalyzed: new Date().toISOString(),
+      networkActivity: Math.floor(profile.transactionCount * 2 + Math.random() * 20), // Based on activity
+      protocolDiversity: profile.protocols.length
+    }
   }
 }
 
@@ -260,66 +467,97 @@ export function DataProvider({ children }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const { userId } = useAuth()
 
-  const validateAddress = (address, chain) => {
-    switch (chain) {
-      case 'ethereum':
-        if (!isValidEthereumAddress(address)) {
-          throw new Error('Invalid Ethereum address format. Address must start with 0x and be 42 characters long.')
-        }
-        break
-      case 'solana':
-        if (!isValidSolanaAddress(address)) {
-          if (isValidEthereumAddress(address)) {
-            throw new Error('You provided an Ethereum address but selected Solana chain. Please provide a valid Solana address.')
-          }
-          throw new Error('Invalid Solana address format. Address must be 32-44 characters long and use base58 encoding.')
-        }
-        break
-      default:
-        throw new Error('Unsupported chain selected')
+  const validateAddress = useCallback((address, chain) => {
+    if (!address) throw new Error('Address is required')
+    
+    const sanitizedAddress = sanitizeInput(address)
+    if (!sanitizedAddress) throw new Error('Invalid address format')
+
+    if (chain === 'ethereum' && !isValidEthereumAddress(sanitizedAddress)) {
+      throw new Error('Invalid Ethereum address format')
     }
-  }
-
-  const analyzeAddress = async (address, chain) => {
-    setLoading(true)
-    setError(null)
-    try {
-      validateAddress(address, chain)
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      const mockData = generateMockData(address, chain)
-      setData(mockData)
-    } catch (err) {
-      setError(err.message)
-      setData(null)
-    } finally {
-      setLoading(false)
+    if (chain === 'solana' && !isValidSolanaAddress(sanitizedAddress)) {
+      throw new Error('Invalid Solana address format')
     }
-  }
 
-  const analyzeContract = async (code, chain) => {
-    setLoading(true)
-    setError(null)
+    return sanitizedAddress
+  }, [])
+
+  const analyzeAddress = useCallback(async (address, chain) => {
     try {
-      if (!code.trim()) {
-        throw new Error('Please provide the contract code')
+      // if (!userId) throw new Error('Authentication required')
+      // if (!checkRateLimit(userId)) throw new Error('Rate limit exceeded')
+
+      setLoading(true)
+      setError(null)
+
+      const sanitizedAddress = validateAddress(address, chain)
+      
+      // Simulate API call with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+
+      try {
+        // Replace with actual API call when ready
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const mockData = generateMockData(sanitizedAddress, chain)
+        setData(mockData)
+      } finally {
+        clearTimeout(timeoutId)
       }
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const scanResults = scanContract(code)
-      const mockData = generateContractMockData(code, scanResults)
-      setData(mockData)
     } catch (err) {
       setError(err.message)
       setData(null)
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, validateAddress])
+
+  const analyzeContract = useCallback(async (code, chain) => {
+    try {
+      // if (!userId) throw new Error('Authentication required')
+      // if (!checkRateLimit(userId)) throw new Error('Rate limit exceeded')
+      if (!code) throw new Error('Contract code is required')
+      if (code.length > MAX_CODE_SIZE) throw new Error('Contract code size exceeds limit')
+
+      setLoading(true)
+      setError(null)
+
+      const sanitizedCode = sanitizeInput(code)
+      const scanResults = scanContract(sanitizedCode)
+      
+      // Simulate API call with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+
+      try {
+        // Replace with actual API call when ready
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const mockData = generateContractMockData(sanitizedCode, scanResults)
+        setData({ ...mockData, code: sanitizedCode })
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    } catch (err) {
+      setError(err.message)
+      setData(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [userId])
+
+  const value = useMemo(() => ({
+    data,
+    loading,
+    error,
+    analyzeAddress,
+    analyzeContract
+  }), [data, loading, error, analyzeAddress, analyzeContract])
 
   return (
-    <DataContext.Provider value={{ data, loading, error, analyzeAddress, analyzeContract }}>
+    <DataContext.Provider value={value}>
       {children}
     </DataContext.Provider>
   )

@@ -1,0 +1,70 @@
+/* Custom Clerk Styling */
+/* Add this to your index.css or import it in main.jsx */
+
+/* Profile Modal Background */
+.cl-modal-content {
+  background: #111827 !important;
+  border: 1px solid #374151 !important;
+}
+
+/* Profile Page Container */
+.cl-card {
+  background: #111827 !important;
+  border: 1px solid #374151 !important;
+}
+
+/* Form Fields */
+.cl-formFieldInput {
+  background: #1f2937 !important;
+  border: 1px solid #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+.cl-formFieldInput:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px #3b82f6 !important;
+}
+
+/* Labels */
+.cl-formFieldLabel {
+  color: #d1d5db !important;
+}
+
+/* Buttons */
+.cl-formButtonPrimary {
+  background: #3b82f6 !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background: #2563eb !important;
+}
+
+/* Profile Navigation */
+.cl-navbarMobileMenuRow {
+  color: #d1d5db !important;
+}
+
+.cl-navbarMobileMenuRow:hover {
+  background: #1f2937 !important;
+}
+
+/* Text Colors */
+.cl-headerTitle {
+  color: #f9fafb !important;
+}
+
+.cl-headerSubtitle {
+  color: #9ca3af !important;
+}
+
+/* Connected Accounts */
+.cl-connectedAccount {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+}
+
+/* Development Mode Badge */
+.cl-internal-2gzn6c {
+  background: #dc2626 !important;
+  color: white !important;
+} 
