@@ -8,35 +8,17 @@
       "maxDuration": 30
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
-    {
-      "source": "/(.*).js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*).js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        }
-      ]
-    },
     {
       "source": "/(.*)",
       "headers": [
@@ -54,13 +36,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "NODE_VERSION": "18.x"
-  },
-  "build": {
-    "env": {
-      "NODE_VERSION": "18.x"
-    }
-  }
+  ]
 }
