@@ -140,10 +140,15 @@ export default async function handler(request) {
       // Check for unique constraint violation - check multiple possible error formats
       const errorMessage = dbError.message || '';
       const errorCode = dbError.code || '';
+      const causeMessage = dbError.cause?.message || '';
+      
+      console.log('Error details:', { errorMessage, errorCode, causeMessage });
       
       if (errorMessage.includes('UNIQUE constraint failed') || 
           errorCode === 'SQLITE_CONSTRAINT' ||
-          errorMessage.includes('SQLite error: UNIQUE constraint failed')) {
+          errorMessage.includes('SQLite error: UNIQUE constraint failed') ||
+          causeMessage.includes('UNIQUE constraint failed') ||
+          causeMessage.includes('SQLite error: UNIQUE constraint failed')) {
         console.log('Email already exists:', email);
         return new Response(JSON.stringify({ 
           error: 'This email is already on our waitlist!',
