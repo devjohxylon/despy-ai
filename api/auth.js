@@ -8,17 +8,26 @@ export default async function handler(request) {
   const url = new URL(request.url);
   
   if (request.method === 'POST' && url.pathname.endsWith('/login')) {
-    const body = await request.json();
-    const { email, password } = body;
-
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password are required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
     try {
+      const body = await request.json();
+      const { email, password } = body;
+
+      if (!email || !password) {
+        return new Response(JSON.stringify({ error: 'Email and password are required' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       // Get user from database
       const result = await client.execute({
         sql: 'SELECT * FROM admins WHERE email = ?',
@@ -103,6 +112,12 @@ export default async function handler(request) {
     } catch (error) {
       if (error.name === 'JsonWebTokenError') {
         return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      if (error.name === 'TokenExpiredError') {
+        return new Response(JSON.stringify({ error: 'Token expired' }), {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         });

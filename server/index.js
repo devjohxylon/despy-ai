@@ -8,8 +8,8 @@ const port = process.env.PORT || 5174;
 
 // Initialize database
 const db = new Database({
-  url: process.env.DATABASE_URL,
-  authToken: process.env.DATABASE_AUTH_TOKEN
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN
 });
 
 // Middleware

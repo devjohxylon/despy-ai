@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { nanoid } from 'nanoid';
 import Papa from 'papaparse';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 

@@ -8,7 +8,7 @@ const db = createClient({
 export default async function handler(request) {
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 45,
+      status: 405,
       headers:{'Content-Type': 'application/json'}
     });
   }
@@ -24,6 +24,15 @@ export default async function handler(request) {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+        status: 400,
+        headers:{'Content-Type': 'application/json'}
+      });
+    }
+
     // Try to insert into database, fallback to mock if not configured
     try {
       await db.execute({
@@ -32,6 +41,18 @@ export default async function handler(request) {
       });
     } catch (dbError) {
       console.warn('Database error (using mock response):', dbError);
+      
+      // Check for unique constraint violation
+      if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
+        return new Response(JSON.stringify({ 
+          error: 'This email is already on our waitlist!',
+          code: 'EMAIL_EXISTS'
+        }), {
+          status: 400,
+          headers:{'Content-Type': 'application/json'}
+        });
+      }
+      
       // Return mock success response if database fails
       return new Response(JSON.stringify({
         success: true,
@@ -54,7 +75,7 @@ export default async function handler(request) {
   } catch (error) {
     console.error('Waitlist error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 50,
+      status: 500,
       headers:{'Content-Type': 'application/json'}
     });
   }

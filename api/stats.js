@@ -8,7 +8,7 @@ const db = createClient({
 export default async function handler(request) {
   if (request.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 45,
+      status: 405,
       headers: { 'Content-Type': 'application/json' }
     });
   }
@@ -18,7 +18,7 @@ export default async function handler(request) {
     try {
       const result = await db.execute('SELECT COUNT(*) as total FROM waitlist');
       return new Response(JSON.stringify({
-        total: result.rows0l,
+        total: result.rows[0].total,
         message: 'Current waitlist count'
       }), {
         status: 200,
@@ -38,7 +38,7 @@ export default async function handler(request) {
   } catch (error) {
     console.error('Stats error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 50,
+      status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
   }
