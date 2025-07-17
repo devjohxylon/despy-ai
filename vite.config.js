@@ -10,17 +10,21 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['framer-motion', 'react-hot-toast']
-        }
+        },
+        format: 'es',
+        entryFileNames: '[name]-[hash].mjs',
+        chunkFileNames: '[name]-[hash].mjs',
+        assetFileNames: '[name]-[hash][extname]'
       }
     },
     cssCodeSplit: true,
     cssMinify: true,
-    chunkSizeWarningLimit: 1000,
+    modulePreload: {
+      polyfill: true
+    },
+    target: 'esnext',
     sourcemap: false,
-    minify: 'esbuild',
-    target: 'es2015',
-    assetsInlineLimit: 4096,
-    reportCompressedSize: true
+    minify: 'esbuild'
   },
   css: {
     devSourcemap: false,
