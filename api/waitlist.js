@@ -5,16 +5,23 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN
 });
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(request) {
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 45,
+      headers:{'Content-Type': 'application/json'}
+    });
   }
 
   try {
-    const { email } = req.body;
+    const body = await request.json();
+    const { email } = body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return new Response(JSON.stringify({ error: 'Email is required' }), {
+        status: 400,
+        headers:{'Content-Type': 'application/json'}
+      });
     }
 
     // Try to insert into database, fallback to mock if not configured
@@ -26,20 +33,29 @@ export default async function handler(req, res) {
     } catch (dbError) {
       console.warn('Database error (using mock response):', dbError);
       // Return mock success response if database fails
-      return res.status(200).json({
+      return new Response(JSON.stringify({
         success: true,
         message: 'Successfully joined waitlist (mock)',
         referralCode: 'MOCK123'
+      }), {
+        status: 200,
+        headers:{'Content-Type': 'application/json'}
       });
     }
 
-    return res.status(200).json({
+    return new Response(JSON.stringify({
       success: true,
       message: 'Successfully joined waitlist',
       referralCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+    }), {
+      status: 200,
+      headers:{'Content-Type': 'application/json'}
     });
   } catch (error) {
     console.error('Waitlist error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 50,
+      headers:{'Content-Type': 'application/json'}
+    });
   }
 } 

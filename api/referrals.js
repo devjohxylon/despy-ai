@@ -1,7 +1,7 @@
 import client from './db';
 
-export default async function handler(req, res) {
-  if (req.method === 'GET') {
+export default async function handler(request) {
+  if (request.method === 'GET') {
     try {
       // Get referral statistics
       const referralStats = await client.execute(`
@@ -29,21 +29,31 @@ export default async function handler(req, res) {
         LIMIT 10
       `);
 
-      return res.status(200).json({
+      return new Response(JSON.stringify({
         stats: referralStats.rows,
         recentActivity: recentActivity.rows
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
       console.error('Error fetching referral data:', error);
-      return res.status(500).json({ error: 'Failed to fetch referral data' });
+      return new Response(JSON.stringify({ error: 'Failed to fetch referral data' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
-  if (req.method === 'POST') {
-    const { referral_code, referred_email } = req.body;
+  if (request.method === 'POST') {
+    const body = await request.json();
+    const { referral_code, referred_email } = body;
 
     if (!referral_code || !referred_email) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     try {
@@ -54,7 +64,10 @@ export default async function handler(req, res) {
       });
 
       if (!referrer.rows.length) {
-        return res.status(404).json({ error: 'Invalid referral code' });
+        return new Response(JSON.stringify({ error: 'Invalid referral code' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       // Track the referral
@@ -65,18 +78,28 @@ export default async function handler(req, res) {
         args: [referral_code, referred_email]
       });
 
-      return res.status(200).json({ success: true });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
       console.error('Error tracking referral:', error);
-      return res.status(500).json({ error: 'Failed to track referral' });
+      return new Response(JSON.stringify({ error: 'Failed to track referral' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
-  if (req.method === 'PUT') {
-    const { referral_id, status, reward_status } = req.body;
+  if (request.method === 'PUT') {
+    const body = await request.json();
+    const { referral_id, status, reward_status } = body;
 
     if (!referral_id) {
-      return res.status(400).json({ error: 'Missing referral ID' });
+      return new Response(JSON.stringify({ error: 'Missing referral ID' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     try {
@@ -102,12 +125,21 @@ export default async function handler(req, res) {
         args: updateArgs
       });
 
-      return res.status(200).json({ success: true });
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
       console.error('Error updating referral:', error);
-      return res.status(500).json({ error: 'Failed to update referral' });
+      return new Response(JSON.stringify({ error: 'Failed to update referral' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' }
+  });
 } 

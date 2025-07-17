@@ -5,29 +5,37 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN
 });
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(request) {
+  if (request.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 45,
+      headers:[object Object]Content-Type': application/json }    });
   }
 
   try {
     // Try to get count from database, fallback to mock if not configured
     try {
       const result = await db.execute('SELECT COUNT(*) as total FROM waitlist');
-      return res.status(200).json({
-        total: result.rows[0].total,
-        message: 'Current waitlist count'
+      return new Response(JSON.stringify({
+        total: result.rows0l,
+        message:Current waitlist count'
+      }), [object Object]       status: 200,
+        headers:[object Object]Content-Type': application/json' }
       });
-    } catch (dbError) {
-      console.warn('Database error (using mock response):', dbError);
+    } catch (dbError)[object Object]      console.warn('Database error (using mock response):,dbError);
       // Return mock data if database fails
-      return res.status(200).json({
+      return new Response(JSON.stringify({
         total: 127,
-        message: 'Mock stats'
+        message: Mock stats'
+      }), [object Object]       status: 200,
+        headers:[object Object]Content-Type': application/json' }
       });
     }
   } catch (error) {
     console.error('Stats error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 50,
+      headers:[object Object]Content-Type': application/json }
+    });
   }
 } 

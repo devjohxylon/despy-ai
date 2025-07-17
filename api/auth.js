@@ -4,12 +4,18 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-export default async function handler(req, res) {
-  if (req.method === 'POST' && req.url.endsWith('/login')) {
-    const { email, password } = req.body;
+export default async function handler(request) {
+  const url = new URL(request.url);
+  
+  if (request.method === 'POST' && url.pathname.endsWith('/login')) {
+    const body = await request.json();
+    const { email, password } = body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return new Response(JSON.stringify({ error: 'Email and password are required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     try {
@@ -22,7 +28,10 @@ export default async function handler(req, res) {
       const user = result.rows[0];
 
       if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       // Create token
@@ -37,26 +46,35 @@ export default async function handler(req, res) {
       );
 
       // Return user info and token
-      return res.status(200).json({
+      return new Response(JSON.stringify({
         token,
         user: {
           id: user.id,
           email: user.email,
           role: user.role
         }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
       console.error('Login error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
-  if (req.method === 'GET' && req.url.endsWith('/user')) {
+  if (request.method === 'GET' && url.pathname.endsWith('/user')) {
     try {
       // Get token from header
-      const authHeader = req.headers.authorization;
+      const authHeader = request.headers.get('authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No token provided' });
+        return new Response(JSON.stringify({ error: 'No token provided' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       const token = authHeader.split(' ')[1];
@@ -72,18 +90,33 @@ export default async function handler(req, res) {
 
       const user = result.rows[0];
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
-      return res.status(200).json(user);
+      return new Response(JSON.stringify(user), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error) {
       if (error.name === 'JsonWebTokenError') {
-        return res.status(401).json({ error: 'Invalid token' });
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       console.error('Auth error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' }
+  });
 } 

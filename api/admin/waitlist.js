@@ -7,18 +7,21 @@ const client = createClient({
 });
 
 // Simple auth middleware
-const authenticate = (req) => {
-  const token = req.headers.authorization?.split(' ')[1];
+const authenticate = (request) => {
+  const token = request.headers.get('authorization')?.split(' ')[1];
   return token === process.env.ADMIN_SECRET;
 };
 
-export default async function handler(req, res) {
+export default async function handler(request) {
   // Check authentication
-  if (!authenticate(req)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!authenticate(request)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
-  switch (req.method) {
+  switch (request.method) {
     case 'GET':
       try {
         const { rows } = await client.execute(`
@@ -26,16 +29,23 @@ export default async function handler(req, res) {
           ORDER BY created_at DESC
           LIMIT 100
         `);
-        res.status(200).json(rows);
+        return new Response(JSON.stringify(rows), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
       } catch (error) {
         console.error('Error fetching waitlist:', error);
-        res.status(500).json({ error: 'Failed to fetch waitlist' });
+        return new Response(JSON.stringify({ error: 'Failed to fetch waitlist' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       break;
 
     case 'POST':
       try {
-        const { type, data } = req.body;
+        const body = await request.json();
+        const { type, data } = body;
 
         switch (type) {
           case 'send_update':
@@ -53,12 +63,14 @@ export default async function handler(req, res) {
             const succeeded = results.filter(r => r.status === 'fulfilled').length;
             const failed = results.filter(r => r.status === 'rejected').length;
 
-            res.status(200).json({
+            return new Response(JSON.stringify({
               message: `Update sent to ${succeeded} recipients (${failed} failed)`,
               succeeded,
               failed
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
             });
-            break;
 
           case 'delete_email':
             const { email } = data;
@@ -66,19 +78,30 @@ export default async function handler(req, res) {
               sql: 'DELETE FROM waitlist WHERE email = ?',
               args: [email]
             });
-            res.status(200).json({ message: 'Email removed from waitlist' });
-            break;
+            return new Response(JSON.stringify({ message: 'Email removed from waitlist' }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            });
 
           default:
-            res.status(400).json({ error: 'Invalid action type' });
+            return new Response(JSON.stringify({ error: 'Invalid action type' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' }
+            });
         }
       } catch (error) {
         console.error('Error processing admin action:', error);
-        res.status(500).json({ error: 'Failed to process action' });
+        return new Response(JSON.stringify({ error: 'Failed to process action' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
       break;
 
     default:
-      res.status(405).json({ error: 'Method not allowed' });
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json' }
+      });
   }
 } 
