@@ -166,40 +166,24 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Modal: Form submitted!');
-    alert('Form submitted!'); // Temporary debug alert
     
     const error = validateEmail(email);
     if (error) {
-      console.log('Modal: Validation error:', error);
       setEmailError(error);
       return;
     }
 
-    console.log('Modal: Setting isSubmitting to true');
     setIsSubmitting(true);
     setEmailError(''); // Clear any previous errors
     
     try {
-      console.log('Modal: Starting submission...');
       await onSubmit(email);
-      console.log('Modal: Submission successful');
       setEmail('');
       // Success! The parent will handle closing the modal
     } catch (error) {
-      console.error('Modal: Waitlist submission error:', error);
       setEmailError(error.message || 'Failed to join waitlist');
-      console.log('Modal: Error set, about to enter finally block');
     } finally {
-      console.log('Modal: FINALLY BLOCK - Setting isSubmitting to false');
       setIsSubmitting(false);
-      console.log('Modal: isSubmitting should now be false');
-      
-      // Force a re-render by updating a different state
-      setTimeout(() => {
-        console.log('Modal: Force re-render check');
-        setIsSubmitting(false);
-      }, 100);
     }
   };
 
@@ -364,7 +348,6 @@ export default function LandingPage() {
   }, []);
 
   const handleWaitlistSubmit = useCallback(async (email) => {
-    console.log('Parent: Starting waitlist submission for:', email);
     try {
       analytics.waitlist.submit(email);
 
@@ -382,24 +365,14 @@ export default function LandingPage() {
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        console.error('Response status:', response.status);
-        console.error('Response headers:', response.headers);
-        console.error('Response text:', responseText);
-        
         throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
       }
       
-      console.log('API Response:', { status: response.status, data });
-      
       if (!response.ok) {
-        console.log('API returned error:', data.error);
         throw new Error(data.error || 'Failed to join waitlist');
       }
 
       analytics.waitlist.success(email);
-      
-      console.log('Success! Closing modal and showing toast...');
       
       toast.success('Successfully joined the waitlist! Check your email.', {
         duration: 5000,
@@ -409,11 +382,7 @@ export default function LandingPage() {
       setWaitlistCount(prev => prev + 1);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Parent: Waitlist error:', error);
-      
       analytics.waitlist.error(email, error.message);
-      
-      // Let the modal handle the error display instead of showing toast
       throw error;
     }
   }, []);

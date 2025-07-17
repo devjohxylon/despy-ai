@@ -183,7 +183,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (data?.transactions) {
-      console.log('Transactions data:', data.transactions)
+      
     }
   }, [data?.transactions])
 

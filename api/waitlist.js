@@ -1,207 +1,198 @@
 import { createClient } from '@libsql/client';
+import * as Sentry from '@sentry/node';
 
-console.log('Waitlist API module loaded');
+// --- Sentry setup ---
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+  environment: process.env.NODE_ENV || 'production',
+});
+// --- End Sentry setup ---
 
-// Helper function to add timeout to promises
-function withTimeout(promise, timeoutMs = 3000) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
-    )
-  ]);
+// --- Simple in-memory rate limiter (per IP, 5 requests per 10 min) ---
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT_MAX = 5;
+const ipRateLimitMap = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = ipRateLimitMap.get(ip) || { count: 0, start: now };
+  if (now - entry.start > RATE_LIMIT_WINDOW) {
+    // Reset window
+    ipRateLimitMap.set(ip, { count: 1, start: now });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return true;
+  }
+  entry.count += 1;
+  ipRateLimitMap.set(ip, entry);
+  return false;
 }
+// --- End rate limiter ---
 
-// Helper function to create database client
+// Create database client with optimized settings
 function createDbClient() {
   const dbUrl = process.env.TURSO_DATABASE_URL;
   const dbToken = process.env.TURSO_AUTH_TOKEN;
   
   if (!dbUrl || !dbToken) {
-    console.log('Database environment variables not set');
-    return null;
+    throw new Error('Database environment variables not configured');
   }
   
   try {
     return createClient({
       url: dbUrl,
       authToken: dbToken,
-      timeout: 3000 // Reduced timeout
+      timeout: 5000 // Increased timeout for better reliability
     });
   } catch (error) {
-    console.error('Failed to create database client:', error);
-    return null;
+    throw new Error(`Failed to create database client: ${error.message}`);
   }
 }
 
 export default async function handler(request) {
-  console.log('Waitlist API called:', request.method, request.url);
-  
+  // --- Rate limiting ---
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  // --- End rate limiting ---
+
   if (request.method !== 'POST') {
-    console.log('Method not allowed:', request.method);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers:{'Content-Type': 'application/json'}
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 
   try {
-    console.log('Parsing request body...');
+    // Parse request body
     let body;
-    
-    // Handle different request body formats
-    if (typeof request.json === 'function') {
-      body = await request.json();
-    } else if (request.body) {
-      // If request.body is already parsed
-      body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
-    } else {
-      // Try to read as text and parse
-      const text = await request.text();
-      body = JSON.parse(text);
+    try {
+      if (typeof request.json === 'function') {
+        body = await request.json();
+      } else if (request.body) {
+        body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+      } else {
+        const text = await request.text();
+        body = JSON.parse(text);
+      }
+    } catch (parseError) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     
     const { email } = body;
 
-    console.log('Received email:', email);
-
     if (!email) {
-      console.log('Email is required');
       return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
-        headers:{'Content-Type': 'application/json'}
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('Invalid email format:', email);
       return new Response(JSON.stringify({ error: 'Invalid email format' }), {
         status: 400,
-        headers:{'Content-Type': 'application/json'}
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('Email validation passed, attempting database operation...');
-
-    // Create database client only when needed
+    // Create database client - this will throw if env vars are missing
     const db = createDbClient();
+
+    // Create table if it doesn't exist
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS waitlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        name TEXT,
+        company TEXT,
+        role TEXT,
+        interests TEXT,
+        referral_code TEXT UNIQUE,
+        referred_by TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     
-    if (!db) {
-      console.log('Database not available, returning mock response');
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Successfully joined waitlist (mock - no database)',
-        referralCode: 'MOCK123'
-      }), {
-        status: 200,
-        headers:{'Content-Type': 'application/json'}
-      });
-    }
-
-    // Try to insert into database with timeout, fallback to mock if it fails
-    try {
-      console.log('Executing database insert with timeout...');
-      
-      // Try to insert directly first - if table doesn't exist, it will fail and we'll create it
-      let insertSuccess = false;
-      try {
-        await withTimeout(db.execute({
-          sql: 'INSERT INTO waitlist (email) VALUES (?)',
-          args: [email]
-        }), 1500); // Very aggressive timeout - 1.5 seconds
-        insertSuccess = true;
-        console.log('Database insert successful');
-      } catch (insertError) {
-        // If insert fails due to missing table, create it and try again
-        if (insertError.message && insertError.message.includes('no such table')) {
-          console.log('Table missing, creating it...');
-          await withTimeout(db.execute(`
-            CREATE TABLE IF NOT EXISTS waitlist (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              email TEXT UNIQUE NOT NULL,
-              name TEXT,
-              company TEXT,
-              role TEXT,
-              interests TEXT,
-              referral_code TEXT UNIQUE,
-              referred_by TEXT,
-              status TEXT DEFAULT 'pending',
-              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-          `), 1500);
-          
-          // Try insert again
-          await withTimeout(db.execute({
-            sql: 'INSERT INTO waitlist (email) VALUES (?)',
-            args: [email]
-          }), 1500);
-          insertSuccess = true;
-          console.log('Database insert successful after table creation');
-        } else {
-          throw insertError; // Re-throw if it's not a missing table error
-        }
-      }
-      
-    } catch (dbError) {
-      console.warn('Database error:', dbError);
-      
-      // Check for unique constraint violation - check multiple possible error formats
-      const errorMessage = dbError.message || '';
-      const errorCode = dbError.code || '';
-      const causeMessage = dbError.cause?.message || '';
-      
-      console.log('Error details:', { errorMessage, errorCode, causeMessage });
-      
-      if (errorMessage.includes('UNIQUE constraint failed') || 
-          errorCode === 'SQLITE_CONSTRAINT' ||
-          errorMessage.includes('SQLite error: UNIQUE constraint failed') ||
-          causeMessage.includes('UNIQUE constraint failed') ||
-          causeMessage.includes('SQLite error: UNIQUE constraint failed')) {
-        console.log('Email already exists:', email);
-        return new Response(JSON.stringify({ 
-          error: 'This email is already on our waitlist!',
-          code: 'EMAIL_EXISTS'
-        }), {
-          status: 400,
-          headers:{'Content-Type': 'application/json'}
-        });
-      }
-      
-      // Return mock success response if database fails (including timeout)
-      console.log('Returning mock response due to database error/timeout');
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Successfully joined waitlist (mock - database unavailable)',
-        referralCode: 'MOCK123',
-        note: 'Database connection failed, but your email has been recorded'
-      }), {
-        status: 200,
-        headers:{'Content-Type': 'application/json'}
-      });
-    }
-
-    console.log('Returning success response');
+    // Insert the email
+    const result = await db.execute({
+      sql: 'INSERT INTO waitlist (email) VALUES (?)',
+      args: [email]
+    });
+    
+    // Generate a simple referral code
+    const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
     return new Response(JSON.stringify({
       success: true,
       message: 'Successfully joined waitlist',
-      referralCode: Math.random().toString(36).substring(2, 8).toUpperCase()
+      referralCode
     }), {
       status: 200,
-      headers:{'Content-Type': 'application/json'}
+      headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
-    console.error('Waitlist error:', error);
     
+  } catch (error) {
+    Sentry.captureException(error);
+    // Check for unique constraint violation
+    if (error.message && (
+      error.message.includes('UNIQUE constraint failed') ||
+      error.message.includes('SQLite error: UNIQUE constraint failed') ||
+      error.message.includes('SQLITE_CONSTRAINT')
+    )) {
+      return new Response(JSON.stringify({ 
+        error: 'This email is already on our waitlist!',
+        code: 'EMAIL_EXISTS'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Check for environment variable issues
+    if (error.message.includes('environment variables not configured')) {
+      return new Response(JSON.stringify({ 
+        error: 'Server configuration error. Please contact support.',
+        details: 'Database not configured'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Check for database connection issues
+    if (error.message.includes('Failed to create database client') || 
+        error.message.includes('timeout') ||
+        error.message.includes('network') ||
+        error.message.includes('connection')) {
+      return new Response(JSON.stringify({ 
+        error: 'Database temporarily unavailable. Please try again later.',
+        details: 'Connection error'
+      }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // For any other unexpected error
     return new Response(JSON.stringify({ 
-      error: 'Internal server error',
-      details: error.message,
-      type: error.name
+      error: 'Internal server error. Please try again later.',
+      details: error.message
     }), {
       status: 500,
-      headers:{'Content-Type': 'application/json'}
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 } 

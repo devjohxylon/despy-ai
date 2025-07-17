@@ -51,8 +51,5 @@ module.exports = {
   future: {
     hoverOnlyWhenSupported: true,
     respectDefaultRingColorOpacity: true
-  },
-  experimental: {
-    optimizeUniversalDefaults: true
   }
 }
