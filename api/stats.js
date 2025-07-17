@@ -1,12 +1,30 @@
-export default function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export const config = {
+  runtime: 'edge'
+};
+
+export default async function handler(request) {
+  if (request.method !== 'GET') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
   }
 
-  return res.status(200).json({ 
-    total: 127,
-    message: 'Mock stats'
-  });
+  return new Response(
+    JSON.stringify({
+      total: 127,
+      message: 'Mock stats'
+    }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
 } 

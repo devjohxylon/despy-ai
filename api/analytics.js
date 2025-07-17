@@ -1,10 +1,27 @@
-export default function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export const config = {
+  runtime: 'edge'
+};
+
+export default async function handler(request) {
+  if (request.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
   }
 
-  // Just return success for now - analytics is disabled anyway
-  return res.status(200).json({ success: true });
+  return new Response(
+    JSON.stringify({ success: true }),
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  );
 } 
