@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { initDb } from '../api/db.js';
+import { initDb } from '../lib/db.js';
 import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';

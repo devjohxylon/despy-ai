@@ -1,4 +1,9 @@
-import client from './db.js';
+import { createClient } from '@libsql/client';
+
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL || 'file:local.db',
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
 
 export default async function handler(request) {
   if (request.method === 'GET') {

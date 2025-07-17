@@ -57,7 +57,6 @@ const apiFiles = [
   'api/waitlist.js',
   'api/stats.js', 
   'api/auth.js',
-  'api/db.js',
   'lib/db.js'
 ];
 

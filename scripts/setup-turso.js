@@ -71,7 +71,7 @@ async function setupTursoDatabase() {
     
     console.log('\n🎉 Database setup completed successfully!');
     console.log('\nNext steps:');
-    console.log('1. Test the database: https://your-domain.vercel.app/api/test-db');
+    console.log('1. Test the database: https://your-domain.vercel.app/api/health');
     console.log('2. Try the waitlist: https://your-domain.vercel.app/api/waitlist');
     
   } catch (error) {
