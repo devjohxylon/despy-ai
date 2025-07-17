@@ -57,30 +57,50 @@ class Analytics {
     this.queue = [];
 
     try {
+      const payload = {
+        events,
+        sessionId: this.sessionId,
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent,
+        screenSize: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      };
+
+      // Log the payload being sent for debugging
+      console.log('Sending analytics payload:', payload);
+
       const response = await fetch(ANALYTICS_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          events,
-          sessionId: this.sessionId,
-          timestamp: Date.now(),
-          userAgent: navigator.userAgent,
-          screenSize: {
-            width: window.innerWidth,
-            height: window.innerHeight
-          }
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error('Analytics request failed');
+        const errorText = await response.text();
+        console.error('Analytics request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          responseText: errorText,
+          payload
+        });
+        throw new Error(`Analytics request failed: ${response.status} ${response.statusText}`);
       }
+
+      const result = await response.json();
+      console.log('Analytics request successful:', result);
     } catch (error) {
       // Re-queue failed events
       this.queue = [...events, ...this.queue];
       console.error('Failed to send analytics:', error);
+      console.error('Failed payload was:', {
+        events,
+        sessionId: this.sessionId,
+        eventCount: events.length
+      });
     } finally {
       this.isProcessing = false;
       // Process any new events that came in while processing
