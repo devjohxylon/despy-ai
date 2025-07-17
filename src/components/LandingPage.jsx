@@ -178,7 +178,7 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
     try {
       await onSubmit(email);
       setEmail('');
-      // Don't close modal here - let the parent handle it
+      // Success! The parent will handle closing the modal
     } catch (error) {
       console.error('Waitlist submission error:', error);
       setEmailError(error.message || 'Failed to join waitlist');
@@ -373,11 +373,15 @@ export default function LandingPage() {
         throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
       }
       
+      console.log('API Response:', { status: response.status, data });
+      
       if (!response.ok) {
         throw new Error(data.error || 'Failed to join waitlist');
       }
 
       analytics.waitlist.success(email);
+      
+      console.log('Success! Closing modal and showing toast...');
       
       toast.success('Successfully joined the waitlist! Check your email.', {
         duration: 5000,
