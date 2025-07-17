@@ -1,12 +1,25 @@
 import { createClient } from '@libsql/client';
 
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:local.db',
-  authToken: process.env.TURSO_AUTH_TOKEN
-});
+console.log('Waitlist API module loaded');
+
+// Initialize database client with better error handling
+let db;
+try {
+  db = createClient({
+    url: process.env.TURSO_DATABASE_URL || 'file:local.db',
+    authToken: process.env.TURSO_AUTH_TOKEN
+  });
+  console.log('Database client initialized');
+} catch (error) {
+  console.error('Failed to initialize database client:', error);
+}
 
 export default async function handler(request) {
   console.log('Waitlist API called:', request.method, request.url);
+  console.log('Environment variables:', {
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'SET' : 'NOT SET',
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'SET' : 'NOT SET'
+  });
   
   if (request.method !== 'POST') {
     console.log('Method not allowed:', request.method);
@@ -17,6 +30,7 @@ export default async function handler(request) {
   }
 
   try {
+    console.log('Parsing request body...');
     const body = await request.json();
     const { email } = body;
 
@@ -40,10 +54,24 @@ export default async function handler(request) {
       });
     }
 
-    console.log('Attempting database insert...');
+    console.log('Email validation passed, attempting database operation...');
+
+    // Check if database is available
+    if (!db) {
+      console.log('Database not available, returning mock response');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Successfully joined waitlist (mock - no database)',
+        referralCode: 'MOCK123'
+      }), {
+        status: 200,
+        headers:{'Content-Type': 'application/json'}
+      });
+    }
 
     // Try to insert into database, fallback to mock if not configured
     try {
+      console.log('Executing database insert...');
       await db.execute({
         sql: 'INSERT INTO waitlist (email) VALUES (?)',
         args: [email]
@@ -51,6 +79,11 @@ export default async function handler(request) {
       console.log('Database insert successful');
     } catch (dbError) {
       console.warn('Database error (using mock response):', dbError);
+      console.warn('Database error details:', {
+        message: dbError.message,
+        code: dbError.code,
+        stack: dbError.stack
+      });
       
       // Check for unique constraint violation
       if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
@@ -65,11 +98,12 @@ export default async function handler(request) {
       }
       
       // Return mock success response if database fails
-      console.log('Returning mock response');
+      console.log('Returning mock response due to database error');
       return new Response(JSON.stringify({
         success: true,
-        message: 'Successfully joined waitlist (mock)',
-        referralCode: 'MOCK123'
+        message: 'Successfully joined waitlist (mock - database error)',
+        referralCode: 'MOCK123',
+        error: dbError.message
       }), {
         status: 200,
         headers:{'Content-Type': 'application/json'}
@@ -87,9 +121,16 @@ export default async function handler(request) {
     });
   } catch (error) {
     console.error('Waitlist error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error.message,
+      type: error.name
     }), {
       status: 500,
       headers:{'Content-Type': 'application/json'}
