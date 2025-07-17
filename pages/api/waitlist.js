@@ -24,11 +24,11 @@ async function initDb() {
 
 // Vercel API route handler
 export default async function handler(req, res) {
-  // Set JSON content type header
+  // Set JSON content type header immediately
   res.setHeader('Content-Type', 'application/json');
   
-  if (req.method === 'POST') {
-    try {
+  try {
+    if (req.method === 'POST') {
       console.log('Waitlist API called:', {
         method: req.method,
         hasBody: !!req.body,
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         body: req.body
       });
 
-      const { email, name, referralCode } = req.body;
+      const { email, name, referralCode } = req.body || {};
 
       if (!email) {
         console.log('Validation failed: email required');
@@ -55,23 +55,23 @@ export default async function handler(req, res) {
       // Generate a mock referral code
       const mockReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      res.status(200).json({ 
+      return res.status(200).json({ 
         success: true, 
         message: 'Successfully joined waitlist',
         referralCode: mockReferralCode
       });
-    } catch (error) {
-      console.error('Waitlist error:', error);
-      res.status(500).json({ 
-        error: 'Failed to join waitlist',
-        message: error.message,
+    } else {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).json({ 
+        error: `Method ${req.method} Not Allowed`,
         success: false
       });
     }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).json({ 
-      error: `Method ${req.method} Not Allowed`,
+  } catch (error) {
+    console.error('Waitlist error:', error);
+    return res.status(500).json({ 
+      error: 'Failed to join waitlist',
+      message: error.message,
       success: false
     });
   }

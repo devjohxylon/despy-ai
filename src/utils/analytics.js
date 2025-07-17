@@ -50,6 +50,12 @@ class Analytics {
   }
 
   async processQueue() {
+    // Temporarily disable analytics to fix user experience
+    console.log('Analytics temporarily disabled - clearing queue');
+    this.queue = [];
+    this.isProcessing = false;
+    return;
+
     if (this.isProcessing || this.queue.length === 0) return;
 
     this.isProcessing = true;
