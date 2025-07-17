@@ -16,6 +16,27 @@ export default async function handler(request) {
   try {
     // Try to get count from database, fallback to mock if not configured
     try {
+      // First, try to create the table if it doesn't exist
+      try {
+        await db.execute(`
+          CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT,
+            company TEXT,
+            role TEXT,
+            interests TEXT,
+            referral_code TEXT UNIQUE,
+            referred_by TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+      } catch (tableError) {
+        console.warn('Table creation failed:', tableError);
+      }
+      
       const result = await db.execute('SELECT COUNT(*) as total FROM waitlist');
       return new Response(JSON.stringify({
         total: result.rows[0].total,

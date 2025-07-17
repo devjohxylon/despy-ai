@@ -47,7 +47,20 @@ export default async function handler(request) {
 
   try {
     console.log('Parsing request body...');
-    const body = await request.json();
+    let body;
+    
+    // Handle different request body formats
+    if (typeof request.json === 'function') {
+      body = await request.json();
+    } else if (request.body) {
+      // If request.body is already parsed
+      body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+    } else {
+      // Try to read as text and parse
+      const text = await request.text();
+      body = JSON.parse(text);
+    }
+    
     const { email } = body;
 
     console.log('Received email:', email);
@@ -90,6 +103,28 @@ export default async function handler(request) {
     // Try to insert into database with timeout, fallback to mock if it fails
     try {
       console.log('Executing database insert with timeout...');
+      
+      // First, try to create the table if it doesn't exist
+      try {
+        await withTimeout(db.execute(`
+          CREATE TABLE IF NOT EXISTS waitlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT,
+            company TEXT,
+            role TEXT,
+            interests TEXT,
+            referral_code TEXT UNIQUE,
+            referred_by TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `), 2000);
+        console.log('Table creation/verification successful');
+      } catch (tableError) {
+        console.warn('Table creation failed, continuing with insert:', tableError);
+      }
       
       const insertPromise = db.execute({
         sql: 'INSERT INTO waitlist (email) VALUES (?)',
