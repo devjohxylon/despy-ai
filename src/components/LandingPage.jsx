@@ -173,11 +173,15 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
     }
 
     setIsSubmitting(true);
+    setEmailError(''); // Clear any previous errors
+    
     try {
       await onSubmit(email);
       setEmail('');
+      // Don't close modal here - let the parent handle it
     } catch (error) {
-      setEmailError(error.message);
+      console.error('Waitlist submission error:', error);
+      setEmailError(error.message || 'Failed to join waitlist');
     } finally {
       setIsSubmitting(false);
     }
@@ -387,11 +391,7 @@ export default function LandingPage() {
       
       analytics.waitlist.error(email, error.message);
       
-      toast.error(error.message, {
-        duration: 5000,
-        style: { background: '#1F2937', color: '#F3F4F6' }
-      });
-
+      // Let the modal handle the error display instead of showing toast
       throw error;
     }
   }, []);
