@@ -53,7 +53,9 @@ function createDbClient() {
 
 export default async function handler(request) {
   // --- Rate limiting ---
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+  const ip = request.headers?.['x-forwarded-for']?.split(',')[0] || 
+             request.headers?.['x-real-ip'] || 
+             'unknown';
   if (isRateLimited(ip)) {
     return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
       status: 429,
