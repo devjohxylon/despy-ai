@@ -1,21 +1,21 @@
-# 🕵️‍♂️ DeSpy AI
+# DeSpy AI
 
-DeSpy AI is a Web3 forensics platform built to trace wallets, detect scams, and score smart contract risk in real-time. Powered by onchain data, smart heuristics, and AI.
+AI-powered blockchain security and analysis platform.
 
-## 🔍 Features
+## Latest Update
+Fixed JSON syntax error in package.json - deployment should now work correctly.
 
-- Wallet tracing (ETH & SOL) More coming soon!
-- Scam token detection (honeypots, rugpulls, fake liquidity)
-- Contract risk scoring (age, ownership, privilege flags)
-- Real-time backend with REST API
-- Frontend dashboard with interactive visualizations
+## Features
+- Smart contract scanning
+- Real-time blockchain monitoring
+- AI-powered security analysis
+- Waitlist system
 
-## 🌐 Links
+## Development
+```bash
+npm install
+npm run dev
+```
 
-- [Website](https://despy.ai)
-- [Twitter](https://x.com/DeSpyAI)
-- [Discord](https://discord.gg/jNTHCjStaS)
-
-## 🔒 Security
-
-For security-related issues, please contact security@despy.ai
+## Deployment
+The project is configured for Vercel deployment with proper API routing and error handling.
