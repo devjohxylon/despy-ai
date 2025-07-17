@@ -1,28 +1,4 @@
-import { createClient } from '@libsql/client';
-
-// Initialize database connection
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN
-});
-
-// Initialize tables if they don't exist
-async function initDb() {
-  try {
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS waitlist (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        welcome_email_sent BOOLEAN DEFAULT FALSE
-      )
-    `);
-  } catch (error) {
-    console.error('Database initialization error:', error);
-  }
-}
-
-// Vercel API route handler
+// Simple waitlist API without database dependencies
 export default async function handler(req, res) {
   // Set JSON content type header immediately
   res.setHeader('Content-Type', 'application/json');
@@ -49,7 +25,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
 
-      // For now, just simulate success until database is properly configured
+      // Mock success response
       console.log('Waitlist signup success:', { email, name, referralCode });
       
       // Generate a mock referral code
