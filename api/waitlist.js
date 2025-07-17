@@ -135,10 +135,15 @@ export default async function handler(request) {
       console.log('Database insert successful');
       
     } catch (dbError) {
-      console.warn('Database error (using mock response):', dbError);
+      console.warn('Database error:', dbError);
       
-      // Check for unique constraint violation
-      if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
+      // Check for unique constraint violation - check multiple possible error formats
+      const errorMessage = dbError.message || '';
+      const errorCode = dbError.code || '';
+      
+      if (errorMessage.includes('UNIQUE constraint failed') || 
+          errorCode === 'SQLITE_CONSTRAINT' ||
+          errorMessage.includes('SQLite error: UNIQUE constraint failed')) {
         console.log('Email already exists:', email);
         return new Response(JSON.stringify({ 
           error: 'This email is already on our waitlist!',
