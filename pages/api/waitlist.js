@@ -24,16 +24,33 @@ async function initDb() {
 
 // Vercel API route handler
 export default async function handler(req, res) {
+  // Set JSON content type header
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method === 'POST') {
     try {
+      console.log('Waitlist API called:', {
+        method: req.method,
+        hasBody: !!req.body,
+        bodyType: typeof req.body,
+        body: req.body
+      });
+
       const { email, name, referralCode } = req.body;
 
       if (!email) {
+        console.log('Validation failed: email required');
         return res.status(400).json({ error: 'Email is required' });
       }
 
+      // Email validation
+      if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) {
+        console.log('Validation failed: invalid email format');
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+
       // For now, just simulate success until database is properly configured
-      console.log('Waitlist signup:', { email, name, referralCode });
+      console.log('Waitlist signup success:', { email, name, referralCode });
       
       // Generate a mock referral code
       const mockReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -45,10 +62,17 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.error('Waitlist error:', error);
-      res.status(500).json({ error: 'Failed to join waitlist' });
+      res.status(500).json({ 
+        error: 'Failed to join waitlist',
+        message: error.message,
+        success: false
+      });
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(405).json({ 
+      error: `Method ${req.method} Not Allowed`,
+      success: false
+    });
   }
 } 

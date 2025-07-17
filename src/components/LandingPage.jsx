@@ -355,7 +355,13 @@ export default function LandingPage() {
         body: JSON.stringify({ email })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        throw new Error('Server returned invalid response. Please try again.');
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to join waitlist');
