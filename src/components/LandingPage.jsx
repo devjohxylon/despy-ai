@@ -176,13 +176,16 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
     setEmailError(''); // Clear any previous errors
     
     try {
+      console.log('Modal: Starting submission...');
       await onSubmit(email);
+      console.log('Modal: Submission successful');
       setEmail('');
       // Success! The parent will handle closing the modal
     } catch (error) {
-      console.error('Waitlist submission error:', error);
+      console.error('Modal: Waitlist submission error:', error);
       setEmailError(error.message || 'Failed to join waitlist');
     } finally {
+      console.log('Modal: Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
@@ -348,6 +351,7 @@ export default function LandingPage() {
   }, []);
 
   const handleWaitlistSubmit = useCallback(async (email) => {
+    console.log('Parent: Starting waitlist submission for:', email);
     try {
       analytics.waitlist.submit(email);
 
@@ -376,6 +380,7 @@ export default function LandingPage() {
       console.log('API Response:', { status: response.status, data });
       
       if (!response.ok) {
+        console.log('API returned error:', data.error);
         throw new Error(data.error || 'Failed to join waitlist');
       }
 
@@ -391,7 +396,7 @@ export default function LandingPage() {
       setWaitlistCount(prev => prev + 1);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Waitlist error:', error);
+      console.error('Parent: Waitlist error:', error);
       
       analytics.waitlist.error(email, error.message);
       
