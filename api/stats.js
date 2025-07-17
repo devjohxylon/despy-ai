@@ -9,7 +9,8 @@ export default async function handler(request) {
   if (request.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 45,
-      headers:[object Object]Content-Type': application/json }    });
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   try {
@@ -18,24 +19,27 @@ export default async function handler(request) {
       const result = await db.execute('SELECT COUNT(*) as total FROM waitlist');
       return new Response(JSON.stringify({
         total: result.rows0l,
-        message:Current waitlist count'
-      }), [object Object]       status: 200,
-        headers:[object Object]Content-Type': application/json' }
+        message: 'Current waitlist count'
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       });
-    } catch (dbError)[object Object]      console.warn('Database error (using mock response):,dbError);
+    } catch (dbError) {
+      console.warn('Database error (using mock response):', dbError);
       // Return mock data if database fails
       return new Response(JSON.stringify({
         total: 127,
-        message: Mock stats'
-      }), [object Object]       status: 200,
-        headers:[object Object]Content-Type': application/json' }
+        message: 'Mock stats'
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       });
     }
   } catch (error) {
     console.error('Stats error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 50,
-      headers:[object Object]Content-Type': application/json }
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 } 
