@@ -189,9 +189,17 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
     } catch (error) {
       console.error('Modal: Waitlist submission error:', error);
       setEmailError(error.message || 'Failed to join waitlist');
+      console.log('Modal: Error set, about to enter finally block');
     } finally {
-      console.log('Modal: Setting isSubmitting to false');
+      console.log('Modal: FINALLY BLOCK - Setting isSubmitting to false');
       setIsSubmitting(false);
+      console.log('Modal: isSubmitting should now be false');
+      
+      // Force a re-render by updating a different state
+      setTimeout(() => {
+        console.log('Modal: Force re-render check');
+        setIsSubmitting(false);
+      }, 100);
     }
   };
 

@@ -3,7 +3,7 @@ import { createClient } from '@libsql/client';
 console.log('Waitlist API module loaded');
 
 // Helper function to add timeout to promises
-function withTimeout(promise, timeoutMs = 5000) {
+function withTimeout(promise, timeoutMs = 3000) {
   return Promise.race([
     promise,
     new Promise((_, reject) => 
@@ -110,7 +110,7 @@ export default async function handler(request) {
         await withTimeout(db.execute({
           sql: 'INSERT INTO waitlist (email) VALUES (?)',
           args: [email]
-        }), 2000); // Reduced timeout to 2 seconds
+        }), 1500); // Very aggressive timeout - 1.5 seconds
         insertSuccess = true;
         console.log('Database insert successful');
       } catch (insertError) {
@@ -131,13 +131,13 @@ export default async function handler(request) {
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
               updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-          `), 2000);
+          `), 1500);
           
           // Try insert again
           await withTimeout(db.execute({
             sql: 'INSERT INTO waitlist (email) VALUES (?)',
             args: [email]
-          }), 2000);
+          }), 1500);
           insertSuccess = true;
           console.log('Database insert successful after table creation');
         } else {
