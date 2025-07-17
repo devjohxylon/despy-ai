@@ -356,15 +356,14 @@ export default function LandingPage() {
       });
 
       let data;
+      const responseText = await response.text();
+      
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('Failed to parse response as JSON:', parseError);
         console.error('Response status:', response.status);
         console.error('Response headers:', response.headers);
-        
-        // Get the actual response text for debugging
-        const responseText = await response.text();
         console.error('Response text:', responseText);
         
         throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
