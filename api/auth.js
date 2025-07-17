@@ -1,4 +1,4 @@
-import client from '../lib/db.js';
+import client from './db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 

@@ -1,4 +1,4 @@
-import client from '../lib/db.js';
+import client from './db.js';
 
 export default async function handler(request) {
   if (request.method === 'GET') {
