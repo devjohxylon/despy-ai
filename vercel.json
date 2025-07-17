@@ -4,8 +4,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.js": {
-      "runtime": "edge",
-      "memory": 256
+      "runtime": "@vercel/node@3.0.0"
     }
   },
   "routes": [
