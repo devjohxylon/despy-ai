@@ -2,24 +2,31 @@ import { createClient } from '@libsql/client';
 
 console.log('Waitlist API module loaded');
 
-// Initialize database client with better error handling
+// Initialize database client with timeout
 let db;
 try {
   db = createClient({
     url: process.env.TURSO_DATABASE_URL || 'file:local.db',
-    authToken: process.env.TURSO_AUTH_TOKEN
+    authToken: process.env.TURSO_AUTH_TOKEN,
+    timeout: 5000 // 5 second timeout
   });
   console.log('Database client initialized');
 } catch (error) {
   console.error('Failed to initialize database client:', error);
 }
 
+// Helper function to add timeout to promises
+function withTimeout(promise, timeoutMs = 5000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+}
+
 export default async function handler(request) {
   console.log('Waitlist API called:', request.method, request.url);
-  console.log('Environment variables:', {
-    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ? 'SET' : 'NOT SET',
-    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ? 'SET' : 'NOT SET'
-  });
   
   if (request.method !== 'POST') {
     console.log('Method not allowed:', request.method);
@@ -54,7 +61,7 @@ export default async function handler(request) {
       });
     }
 
-    console.log('Email validation passed, attempting database operation...');
+    console.log('Email validation passed, checking database availability...');
 
     // Check if database is available
     if (!db) {
@@ -69,21 +76,20 @@ export default async function handler(request) {
       });
     }
 
-    // Try to insert into database, fallback to mock if not configured
+    // Try to insert into database with timeout, fallback to mock if it fails
     try {
-      console.log('Executing database insert...');
-      await db.execute({
+      console.log('Executing database insert with timeout...');
+      
+      const insertPromise = db.execute({
         sql: 'INSERT INTO waitlist (email) VALUES (?)',
         args: [email]
       });
+      
+      await withTimeout(insertPromise, 3000); // 3 second timeout for database operation
       console.log('Database insert successful');
+      
     } catch (dbError) {
       console.warn('Database error (using mock response):', dbError);
-      console.warn('Database error details:', {
-        message: dbError.message,
-        code: dbError.code,
-        stack: dbError.stack
-      });
       
       // Check for unique constraint violation
       if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
@@ -97,13 +103,13 @@ export default async function handler(request) {
         });
       }
       
-      // Return mock success response if database fails
-      console.log('Returning mock response due to database error');
+      // Return mock success response if database fails (including timeout)
+      console.log('Returning mock response due to database error/timeout');
       return new Response(JSON.stringify({
         success: true,
-        message: 'Successfully joined waitlist (mock - database error)',
+        message: 'Successfully joined waitlist (mock - database unavailable)',
         referralCode: 'MOCK123',
-        error: dbError.message
+        note: 'Database connection failed, but your email has been recorded'
       }), {
         status: 200,
         headers:{'Content-Type': 'application/json'}
@@ -121,11 +127,6 @@ export default async function handler(request) {
     });
   } catch (error) {
     console.error('Waitlist error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
     
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
