@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Simplified config for faster builds
+// Optimized config for production builds
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -13,10 +13,20 @@ export default defineConfig({
         }
       }
     },
+    cssCodeSplit: true,
+    cssMinify: true,
     chunkSizeWarningLimit: 1000,
     sourcemap: false,
-    minify: 'esbuild', // Faster than terser
-    target: 'es2015' // Better compatibility
+    minify: 'esbuild',
+    target: 'es2015',
+    assetsInlineLimit: 4096,
+    reportCompressedSize: true
+  },
+  css: {
+    devSourcemap: false,
+    modules: {
+      scopeBehavior: 'local'
+    }
   },
   server: {
     port: 3000,

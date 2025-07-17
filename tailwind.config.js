@@ -47,5 +47,12 @@ module.exports = {
       }
     }
   },
-  plugins: []
+  plugins: [],
+  future: {
+    hoverOnlyWhenSupported: true,
+    respectDefaultRingColorOpacity: true
+  },
+  experimental: {
+    optimizeUniversalDefaults: true
+  }
 }
