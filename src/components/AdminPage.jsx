@@ -1,256 +1,188 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import AdminManagement from './AdminManagement';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import ReferralDashboard from './ReferralDashboard';
+import WaitlistManagement from './WaitlistManagement';
+import { useAuth } from '../context/AuthContext';
 
 const AdminPage = () => {
-  const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [actionInProgress, setActionInProgress] = useState(false);
-  const [activeTab, setActiveTab] = useState('analytics'); // Start with analytics
+  const [activeTab, setActiveTab] = useState('analytics');
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    conversionRate: 0,
+    revenue: 0
+  });
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (activeTab === 'waitlist') {
-      fetchEntries();
-    }
-  }, [activeTab]);
+    fetchDashboardStats();
+  }, []);
 
-  const fetchEntries = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/waitlist', {
+      setLoading(true);
+      const response = await fetch('/api/admin/stats', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('adminToken');
-          navigate('/admin/login');
-          return;
-        }
-        throw new Error('Failed to fetch entries');
+        throw new Error('Failed to fetch stats');
       }
 
       const data = await response.json();
-      setEntries(data.entries);
+      setStats(data);
     } catch (error) {
-      setError(error.message);
+      console.error('Error fetching stats:', error);
+      toast.error('Failed to fetch dashboard statistics');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/admin/login');
-  };
-
-  const handleManualVerification = async (email) => {
-    setActionInProgress(true);
+  const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/admin/verify-email', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to verify email');
-      }
-
-      await fetchEntries();
+      await logout();
+      navigate('/admin/login');
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setActionInProgress(false);
+      console.error('Logout error:', error);
     }
   };
 
-  const handleResendVerification = async (email) => {
-    setActionInProgress(true);
+  const handleExportData = async (type) => {
     try {
-      const response = await fetch('http://localhost:3001/api/resend-verification', {
-        method: 'POST',
+      const response = await fetch(`/api/admin/export/${type}`, {
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to resend verification email');
-      }
+      if (!response.ok) throw new Error('Export failed');
 
-      alert('Verification email resent successfully');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `despy-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setActionInProgress(false);
+      console.error('Export error:', error);
+      toast.error(`Failed to export ${type} data`);
     }
   };
-
-  if (loading && activeTab === 'waitlist') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <div className="mt-4 space-x-4">
+    <div className="min-h-screen bg-gray-100">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
+                <span className="text-2xl font-bold text-blue-600">DeSpy AI</span>
+              </div>
+            </div>
+            <div className="flex items-center">
               <button
-                onClick={() => setActiveTab('analytics')}
-                className={`px-4 py-2 rounded ${
-                  activeTab === 'analytics'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                onClick={handleLogout}
+                className="ml-4 px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800"
               >
-                📊 Analytics
-              </button>
-              <button
-                onClick={() => setActiveTab('waitlist')}
-                className={`px-4 py-2 rounded ${
-                  activeTab === 'waitlist'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                📧 Waitlist
-              </button>
-              <button
-                onClick={() => setActiveTab('admins')}
-                className={`px-4 py-2 rounded ${
-                  activeTab === 'admins'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                👥 Admins
+                Logout
               </button>
             </div>
           </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total Users', value: stats.totalUsers },
+            { label: 'Active Users', value: stats.activeUsers },
+            { label: 'Conversion Rate', value: `${stats.conversionRate}%` },
+            { label: 'Revenue', value: `$${stats.revenue}` }
+          ].map((stat, index) => (
+            <div key={index} className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {stat.label}
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {stat.value}
+                </dd>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                {[
+                  { id: 'analytics', label: '📊 Analytics' },
+                  { id: 'waitlist', label: '📋 Waitlist' },
+                  { id: 'referrals', label: '🔗 Referrals' },
+                  { id: 'admins', label: '👥 Admins' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                      ${activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }
+                    `}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mb-6 flex justify-end space-x-4">
           <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            onClick={() => handleExportData('analytics')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-            Logout
+            Export Analytics
+          </button>
+          <button
+            onClick={() => handleExportData('waitlist')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Export Waitlist
+          </button>
+          <button
+            onClick={fetchDashboardStats}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Refresh Data
           </button>
         </div>
 
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {activeTab === 'analytics' && <AnalyticsDashboard />}
-
-        {activeTab === 'waitlist' && (
-          <>
-            <div className="mb-4">
-              <p className="text-gray-600">
-                Total: {entries.length} | Verified: {entries.filter(e => e.verified).length}
-              </p>
-            </div>
-
-            <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Verified At
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {entries.map((entry, index) => (
-                    <tr key={index} className={entry.verified ? 'bg-green-50' : ''}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{entry.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(entry.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          entry.verified
-                            ? 'bg-green-100 text-green-800'
-                            : entry.tokenExpiry && new Date(entry.tokenExpiry) < new Date()
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {entry.verified 
-                            ? 'Verified' 
-                            : entry.tokenExpiry && new Date(entry.tokenExpiry) < new Date()
-                            ? 'Expired'
-                            : 'Pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {entry.verifiedAt ? new Date(entry.verifiedAt).toLocaleString() : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex space-x-2">
-                          {!entry.verified && (
-                            <>
-                              <button
-                                onClick={() => handleManualVerification(entry.email)}
-                                disabled={actionInProgress}
-                                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
-                              >
-                                Verify
-                              </button>
-                              <button
-                                onClick={() => handleResendVerification(entry.email)}
-                                disabled={actionInProgress}
-                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                Resend
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'admins' && <AdminManagement />}
+        {/* Tab Content */}
+        <div className="bg-white shadow rounded-lg">
+          {activeTab === 'analytics' && <AnalyticsDashboard />}
+          {activeTab === 'waitlist' && <WaitlistManagement />}
+          {activeTab === 'referrals' && <ReferralDashboard />}
+          {activeTab === 'admins' && <AdminManagement />}
+        </div>
       </div>
     </div>
   );

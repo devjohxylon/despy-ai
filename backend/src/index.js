@@ -1,68 +1,40 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const waitlistRoutes = require('./routes/waitlist');
-const adminRoutes = require('./routes/admin');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import waitlistRoutes from './routes/waitlist.js';
+import adminRoutes from './routes/admin.js';
+import analyticsRoutes from './routes/analytics.js';
+import { adminAuth } from './middleware/adminAuth.js';
+
+dotenv.config();
 
 const app = express();
+const port = process.env.PORT || 3000;
 
-// Security middleware
-app.use(helmet());
-app.use(cors());
+// Middleware
 app.use(express.json());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-
-// Apply rate limiting to all routes
-app.use(limiter);
-
-// Stricter rate limit for waitlist submissions
-const waitlistLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 waitlist submissions per hour
-  message: 'Too many waitlist submissions from this IP, please try again later.'
-});
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://despy.ai', /\.despy\.ai$/]
+    : 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Routes
-app.use('/api/waitlist', waitlistLimiter, waitlistRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/waitlist', waitlistRoutes);
+app.use('/api/admin', adminAuth, adminRoutes);
+app.use('/api/analytics', analyticsRoutes); // Public endpoint for tracking
+app.use('/api/analytics/data', adminAuth, analyticsRoutes); // Protected endpoint for viewing data
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Connect to MongoDB
-const mongoURI = process.env.MONGODB_URI || 'mongodb://admin:secret@localhost:27017/despy-ai?authSource=admin';
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
-
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 }); 

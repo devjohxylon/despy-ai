@@ -1,131 +1,135 @@
-const express = require('express');
-const adminAuth = require('../middleware/adminAuth');
-const WaitlistEntry = require('../models/WaitlistEntry');
+import express from 'express';
+import { createClient } from '@libsql/client';
+import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import { nanoid } from 'nanoid';
+import Papa from 'papaparse';
+
+dotenv.config();
 
 const router = express.Router();
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
 
-// Get all waitlist entries with pagination and filtering
-router.get('/waitlist', adminAuth, async (req, res) => {
+// Rate limiting for admin endpoints
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
+router.use(adminLimiter);
+
+// Stats endpoint
+router.get('/stats', async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search } = req.query;
-    const query = {};
-    
-    // Add status filter if provided
-    if (status) {
-      query.status = status;
-    }
-
-    // Add email search if provided
-    if (search) {
-      query.email = { $regex: search, $options: 'i' };
-    }
-
-    const entries = await WaitlistEntry.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .exec();
-
-    const count = await WaitlistEntry.countDocuments(query);
+    const total = await db.execute('SELECT COUNT(*) as count FROM waitlist');
+    const verified = await db.execute('SELECT COUNT(*) as count FROM waitlist WHERE verified = 1');
+    const weeklySignups = await db.execute(`
+      SELECT COUNT(*) as count 
+      FROM waitlist 
+      WHERE created_at >= datetime('now', '-7 days')
+    `);
+    const verificationRate = (verified.rows[0].count / total.rows[0].count) * 100;
 
     res.json({
-      entries,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page,
-      totalEntries: count
+      total: total.rows[0].count,
+      verified: verified.rows[0].count,
+      weeklySignups: weeklySignups.rows[0].count,
+      verificationRate: Math.round(verificationRate)
     });
   } catch (error) {
-    console.error('Admin waitlist error:', error);
-    res.status(500).json({
-      message: 'Error fetching waitlist entries'
-    });
+    console.error('Stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 
-// Update waitlist entry status
-router.patch('/waitlist/:id', adminAuth, async (req, res) => {
+// Get waitlist entries
+router.get('/waitlist', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = 'SELECT * FROM waitlist';
+    const params = [];
+    if (search) {
+      query += ' WHERE email LIKE ?';
+      params.push(`%${search}%`);
+    }
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const entries = await db.execute(query, params);
+    const total = await db.execute('SELECT COUNT(*) as count FROM waitlist');
+
+    res.json({
+      entries: entries.rows,
+      totalPages: Math.ceil(total.rows[0].count / limit)
+    });
+  } catch (error) {
+    console.error('Waitlist fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch waitlist' });
+  }
+});
+
+// Update status
+router.patch('/waitlist/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['pending', 'approved', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        message: 'Invalid status value'
-      });
-    }
-
-    const entry = await WaitlistEntry.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
+    await db.execute(
+      'UPDATE waitlist SET status = ? WHERE id = ?',
+      [status, id]
     );
 
-    if (!entry) {
-      return res.status(404).json({
-        message: 'Waitlist entry not found'
-      });
-    }
-
-    res.json(entry);
+    res.json({ success: true });
   } catch (error) {
-    console.error('Admin update error:', error);
-    res.status(500).json({
-      message: 'Error updating waitlist entry'
-    });
+    console.error('Status update error:', error);
+    res.status(500).json({ error: 'Failed to update status' });
   }
 });
 
-// Delete waitlist entry
-router.delete('/waitlist/:id', adminAuth, async (req, res) => {
+// Export data
+router.get('/waitlist/export', async (req, res) => {
   try {
-    const { id } = req.params;
-    const entry = await WaitlistEntry.findByIdAndDelete(id);
+    const { format } = req.query;
+    const entries = await db.execute('SELECT * FROM waitlist');
 
-    if (!entry) {
-      return res.status(404).json({
-        message: 'Waitlist entry not found'
-      });
+    if (format === 'json') {
+      res.json(entries.rows);
+    } else if (format === 'csv') {
+      const csv = Papa.unparse(entries.rows);
+      res.header('Content-Type', 'text/csv');
+      res.attachment('waitlist.csv');
+      res.send(csv);
+    } else {
+      res.status(400).json({ error: 'Invalid format' });
     }
-
-    res.json({
-      message: 'Waitlist entry deleted successfully'
-    });
   } catch (error) {
-    console.error('Admin delete error:', error);
-    res.status(500).json({
-      message: 'Error deleting waitlist entry'
-    });
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Failed to export data' });
   }
 });
 
-// Get waitlist statistics
-router.get('/waitlist/stats', adminAuth, async (req, res) => {
+// Create admin user (for initial setup)
+router.post('/create', async (req, res) => {
   try {
-    const stats = await WaitlistEntry.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
+    const { username, password } = req.body;
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const token = nanoid();
 
-    const totalCount = await WaitlistEntry.countDocuments();
-    const lastWeekCount = await WaitlistEntry.countDocuments({
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-    });
+    await db.execute(
+      'INSERT INTO admins (username, password_hash, token) VALUES (?, ?, ?)',
+      [username, hashedPassword, token]
+    );
 
-    res.json({
-      statusBreakdown: stats,
-      total: totalCount,
-      lastWeekSignups: lastWeekCount
-    });
+    res.json({ success: true, token });
   } catch (error) {
-    console.error('Admin stats error:', error);
-    res.status(500).json({
-      message: 'Error fetching waitlist statistics'
-    });
+    console.error('Admin creation error:', error);
+    res.status(500).json({ error: 'Failed to create admin' });
   }
 });
 
-module.exports = router; 
+export default router; 

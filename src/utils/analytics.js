@@ -1,242 +1,195 @@
-// Analytics Service for DeSpy AI
-// Handles Google Analytics integration and custom event tracking
+// Enhanced analytics service with comprehensive tracking
+const ANALYTICS_ENDPOINT = '/api/analytics';
 
-class AnalyticsService {
+class Analytics {
   constructor() {
-    this.isInitialized = false;
-    this.gaId = 'GA_MEASUREMENT_ID'; // Replace with actual GA4 ID
-    this.debugMode = process.env.NODE_ENV === 'development';
+    this.queue = [];
+    this.isProcessing = false;
+    this.sessionId = this.generateSessionId();
+    this.init();
   }
 
-  // Initialize Google Analytics
+  generateSessionId() {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+  }
+
   init() {
-    if (typeof window === 'undefined' || this.isInitialized) return;
+    // Track initial page load
+    this.pageView(window.location.pathname);
 
-    // Load gtag if not already loaded
-    if (!window.gtag) {
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function() {
-        window.dataLayer.push(arguments);
-      };
-      window.gtag('js', new Date());
-      window.gtag('config', this.gaId, {
-        page_title: document.title,
-        page_location: window.location.href,
-        send_page_view: true
+    // Set up navigation tracking
+    if (typeof window !== 'undefined') {
+      // Track browser back/forward
+      window.addEventListener('popstate', () => {
+        this.pageView(window.location.pathname);
       });
-    }
 
-    this.isInitialized = true;
-    this.log('Analytics initialized');
-  }
-
-  // Track page views
-  trackPageView(path, title) {
-    if (!this.isInitialized) this.init();
-    
-    if (window.gtag) {
-      window.gtag('config', this.gaId, {
-        page_path: path,
-        page_title: title,
-        page_location: window.location.href
-      });
-    }
-    
-    this.log('Page view tracked:', { path, title });
-  }
-
-  // Track custom events
-  trackEvent(eventName, parameters = {}) {
-    if (!this.isInitialized) this.init();
-    
-    const eventData = {
-      event_category: parameters.category || 'engagement',
-      event_label: parameters.label,
-      value: parameters.value,
-      custom_parameter_1: 'blockchain_analytics',
-      ...parameters
-    };
-
-    if (window.gtag) {
-      window.gtag('event', eventName, eventData);
-    }
-    
-    this.log('Event tracked:', eventName, eventData);
-  }
-
-  // Track user engagement events
-  trackEngagement(action, details = {}) {
-    this.trackEvent('engagement', {
-      category: 'user_engagement',
-      action: action,
-      ...details
-    });
-  }
-
-  // Track form submissions
-  trackFormSubmission(formName, success = true, details = {}) {
-    this.trackEvent('form_submit', {
-      category: 'form',
-      form_name: formName,
-      success: success,
-      ...details
-    });
-  }
-
-  // Track button clicks
-  trackButtonClick(buttonName, location = '') {
-    this.trackEvent('click', {
-      category: 'button',
-      button_name: buttonName,
-      location: location
-    });
-  }
-
-  // Track waitlist signups
-  trackWaitlistSignup(email, source = 'direct') {
-    this.trackEvent('waitlist_signup', {
-      category: 'conversion',
-      source: source,
-      email_domain: email.split('@')[1] || 'unknown'
-    });
-  }
-
-  // Track performance metrics
-  trackPerformance() {
-    if (!window.performance) return;
-
-    const perfData = performance.getEntriesByType('navigation')[0];
-    if (perfData) {
-      this.trackEvent('performance', {
-        category: 'performance',
-        page_load_time: Math.round(perfData.loadEventEnd - perfData.fetchStart),
-        dom_content_loaded: Math.round(perfData.domContentLoadedEventEnd - perfData.fetchStart),
-        first_contentful_paint: this.getFirstContentfulPaint()
-      });
+      // Track user timing
+      this.trackTiming('time_to_first_paint');
+      this.trackTiming('time_to_interactive');
     }
   }
 
-  // Get First Contentful Paint metric
-  getFirstContentfulPaint() {
-    const fcpEntry = performance.getEntriesByName('first-contentful-paint')[0];
-    return fcpEntry ? Math.round(fcpEntry.startTime) : null;
-  }
-
-  // Track scroll depth
-  trackScrollDepth() {
-    let maxScrollDepth = 0;
-    let scrollDepthMarkers = [25, 50, 75, 90, 100];
-    let trackedMarkers = [];
-
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = (scrollTop / docHeight) * 100;
-
-      if (scrollPercent > maxScrollDepth) {
-        maxScrollDepth = scrollPercent;
-
-        scrollDepthMarkers.forEach(marker => {
-          if (scrollPercent >= marker && !trackedMarkers.includes(marker)) {
-            trackedMarkers.push(marker);
-            this.trackEvent('scroll', {
-              category: 'engagement',
-              scroll_depth: marker,
-              page: window.location.pathname
-            });
-          }
-        });
-      }
-    };
-
-    // Throttle scroll events
-    let ticking = false;
-    const throttledScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          handleScroll();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', throttledScroll, { passive: true });
-  }
-
-  // Track time on page
-  trackTimeOnPage() {
-    const startTime = Date.now();
-    
-    const sendTimeOnPage = () => {
-      const timeOnPage = Math.round((Date.now() - startTime) / 1000);
-      this.trackEvent('time_on_page', {
-        category: 'engagement',
-        time_seconds: timeOnPage,
-        page: window.location.pathname
-      });
-    };
-
-    // Track when user leaves page
-    window.addEventListener('beforeunload', sendTimeOnPage);
-    
-    // Also track at intervals for active users
-    const intervals = [30, 60, 120, 300]; // 30s, 1m, 2m, 5m
-    intervals.forEach(seconds => {
-      setTimeout(() => {
-        if (document.visibilityState === 'visible') {
-          this.trackEvent('time_milestone', {
-            category: 'engagement',
-            milestone: seconds,
-            page: window.location.pathname
+  async trackTiming(metric) {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach(entry => {
+          this.track('performance', {
+            metric,
+            value: entry.startTime,
+            name: entry.name
           });
-        }
-      }, seconds * 1000);
-    });
-  }
+        });
+      });
 
-  // Track errors
-  trackError(error, context = '') {
-    this.trackEvent('error', {
-      category: 'error',
-      error_message: error.message || 'Unknown error',
-      error_stack: error.stack || '',
-      context: context,
-      page: window.location.pathname
-    });
-  }
-
-  // Enhanced logging for development
-  log(...args) {
-    if (this.debugMode) {
-      console.log('[Analytics]', ...args);
+      observer.observe({ entryTypes: ['paint', 'largest-contentful-paint'] });
+    } catch (error) {
+      console.error('Performance tracking error:', error);
     }
   }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) return;
+
+    this.isProcessing = true;
+    const events = [...this.queue];
+    this.queue = [];
+
+    try {
+      const response = await fetch(ANALYTICS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          events,
+          sessionId: this.sessionId,
+          timestamp: Date.now(),
+          userAgent: navigator.userAgent,
+          screenSize: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Analytics request failed');
+      }
+    } catch (error) {
+      // Re-queue failed events
+      this.queue = [...events, ...this.queue];
+      console.error('Failed to send analytics:', error);
+    } finally {
+      this.isProcessing = false;
+      // Process any new events that came in while processing
+      if (this.queue.length > 0) {
+        setTimeout(() => this.processQueue(), 1000);
+      }
+    }
+  }
+
+  track(eventName, properties = {}) {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const event = {
+        event: eventName,
+        properties: {
+          ...properties,
+          timestamp: Date.now(),
+          path: window.location.pathname,
+          referrer: document.referrer,
+          language: navigator.language,
+        }
+      };
+
+      this.queue.push(event);
+      this.processQueue();
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Analytics]', event);
+      }
+    } catch (error) {
+      console.error('Analytics Error:', error);
+    }
+  }
+
+  // Page view tracking
+  pageView(page) {
+    this.track('page_view', {
+      page,
+      title: document.title,
+      loadTime: performance.now()
+    });
+  }
+
+  // User interaction tracking
+  interaction = {
+    click: (elementId, properties = {}) => {
+      this.track('click', { elementId, ...properties });
+    },
+    scroll: (depth) => {
+      this.track('scroll_depth', { depth });
+    },
+    hover: (elementId, duration) => {
+      this.track('hover', { elementId, duration });
+    },
+    formSubmit: (formId, success, properties = {}) => {
+      this.track('form_submit', { formId, success, ...properties });
+    }
+  };
+
+  // Waitlist tracking
+  waitlist = {
+    view: () => this.track('waitlist_view'),
+    submit: (email) => this.track('waitlist_submit', { email: this.hashEmail(email) }),
+    success: (email) => this.track('waitlist_success', { email: this.hashEmail(email) }),
+    error: (email, error) => this.track('waitlist_error', { 
+      email: this.hashEmail(email), 
+      error: error.message 
+    })
+  };
+
+  // Social interaction tracking
+  social = {
+    click: (platform, url) => {
+      this.track('social_click', { platform, url });
+    },
+    share: (platform, content) => {
+      this.track('social_share', { platform, content });
+    }
+  };
+
+  // Feature usage tracking
+  feature = {
+    use: (featureName, properties = {}) => {
+      this.track('feature_use', { feature: featureName, ...properties });
+    },
+    error: (featureName, error, properties = {}) => {
+      this.track('feature_error', {
+        feature: featureName,
+        error: error.message,
+        ...properties
+      });
+    }
+  };
+
+  // Error tracking
+  error(error, context = {}) {
+    this.track('error', {
+      message: error.message,
+      stack: error.stack,
+      ...context
+    });
+  }
+
+  // Privacy-focused email hashing
+  hashEmail(email) {
+    // In production, use a proper hashing function
+    return email.split('@')[0].substring(0, 2) + '...@' + email.split('@')[1];
+  }
 }
 
-// Create singleton instance
-const analytics = new AnalyticsService();
-
-// Auto-initialize on import
-if (typeof window !== 'undefined') {
-  analytics.init();
-  
-  // Track initial page load
-  window.addEventListener('load', () => {
-    analytics.trackPerformance();
-    analytics.trackScrollDepth();
-    analytics.trackTimeOnPage();
-  });
-
-  // Track errors
-  window.addEventListener('error', (event) => {
-    analytics.trackError(event.error, 'global_error_handler');
-  });
-
-  // Track unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    analytics.trackError(new Error(event.reason), 'unhandled_promise_rejection');
-  });
-}
-
-export default analytics; 
+export default new Analytics(); 

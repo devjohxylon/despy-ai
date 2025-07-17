@@ -1,144 +1,118 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react({
-      // Enable Fast Refresh for better development experience
-      fastRefresh: true,
-      // Include .jsx files
-      include: '**/*.{jsx,tsx}',
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'DeSpy AI',
+        short_name: 'DeSpy',
+        description: 'AI-Powered Blockchain Security & Analysis',
+        theme_color: '#0B0F17',
+        background_color: '#0B0F17',
+        display: 'standalone',
+        icons: [
+          {
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/api\.despy\.ai\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 5 // 5 minutes
+              },
+              networkTimeoutSeconds: 10
+            }
+          }
+        ]
+      }
     })
   ],
-  base: '/',
-  
-  // Enhanced server configuration
-  server: {
-    headers: {
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-      'X-XSS-Protection': '1; mode=block',
-    },
-  },
-  
-  // Optimized build configuration
   build: {
-    target: ['es2020', 'chrome80', 'firefox78', 'safari14'],
-    minify: 'esbuild',
-    sourcemap: false,
-    cssCodeSplit: true,
-    // Reduce bundle size
-    reportCompressedSize: false,
-    chunkSizeWarningLimit: 500,
-    
     rollupOptions: {
       output: {
-        // Optimized chunking strategy
         manualChunks: {
-          // React ecosystem
-          'react-vendor': ['react', 'react-dom'],
-          'react-router': ['react-router-dom'],
-          
-          // Chart libraries
-          'chart-vendor': ['chart.js', 'react-chartjs-2', 'recharts'],
-          
-          // Animation libraries
-          'animation-vendor': ['framer-motion', 'lottie-react'],
-          
-          // Data visualization
-          'd3-vendor': ['d3'],
-          
-          // AI/ML libraries
-          'ai-vendor': ['@tensorflow/tfjs'],
-          
-          // SEO and analytics
-          'seo-vendor': ['react-helmet-async'],
-          
-          // Icons and UI
-          'ui-vendor': ['@heroicons/react', 'lucide-react'],
-          
-          // Utilities
-          'utils-vendor': ['react-hot-toast']
-        },
-        
-        // Generate readable chunk names
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-        
-        // Optimize asset compression
-        compact: true,
-      },
-      
-      // External dependencies (if using CDN)
-      external: [],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['framer-motion', 'react-hot-toast'],
+          'analytics-vendor': ['../utils/analytics']
+        }
+      }
     },
-    
-    // Asset optimization
-    assetsInlineLimit: 4096, // Inline assets < 4kb
-    
-    // CSS optimization
-    cssMinify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
+    sourcemap: false,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
   },
-  
-  // CSS configuration with optimizations
-  css: {
-    postcss: {
-      plugins: [
-        tailwindcss,
-        autoprefixer,
-      ],
-    },
-    modules: {
-      scopeBehaviour: 'local',
-      // Optimize CSS modules
-      localsConvention: 'camelCase',
-    },
-    // Enable CSS source maps in development
-    devSourcemap: true,
-  },
-  
-  // Optimized dependency handling
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'framer-motion',
-      'react-helmet-async',
-      'chart.js',
-      'react-chartjs-2'
-    ],
-    // Exclude large dependencies that should be lazy-loaded
-    exclude: [
-      '@tensorflow/tfjs',
-      '@splinetool/react-spline'
-    ],
-  },
-  
-  // Enable modern features
-  esbuild: {
-    // Remove console logs in production
-    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
-    // Enable top-level await
-    target: 'es2022',
-  },
-  
-  // Performance monitoring
-  define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-  },
-  
-  // Preview server configuration
-  preview: {
+  server: {
+    port: 3000,
+    strictPort: true,
     headers: {
-      'Cache-Control': 'public, max-age=31536000',
-      'X-Content-Type-Options': 'nosniff',
-    },
-  },
-})
+      'Cache-Control': 'public, max-age=31536000'
+    }
+  }
+});

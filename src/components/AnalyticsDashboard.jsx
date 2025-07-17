@@ -1,218 +1,324 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import {
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area
+} from 'recharts';
+import { 
+  Users, ArrowUp, ArrowDown, Clock, MousePointer, Share2, AlertTriangle,
+  Activity, TrendingUp
+} from 'lucide-react';
 
-const AnalyticsDashboard = () => {
-  const [stats, setStats] = useState(null);
+const MetricCard = ({ title, value, change, icon: Icon, loading }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800/20"
+  >
+    <div className="flex items-start justify-between">
+      <div>
+        <p className="text-gray-400 text-sm">{title}</p>
+        {loading ? (
+          <div className="h-8 w-24 bg-gray-800 animate-pulse rounded mt-2" />
+        ) : (
+          <h3 className="text-2xl font-semibold text-gray-100 mt-2">{value}</h3>
+        )}
+      </div>
+      <div className="p-2 bg-gray-800/50 rounded-lg">
+        <Icon className="w-5 h-5 text-blue-500" />
+      </div>
+    </div>
+    {!loading && change && (
+      <div className="mt-4 flex items-center">
+        {change > 0 ? (
+          <ArrowUp className="w-4 h-4 text-green-500" />
+        ) : (
+          <ArrowDown className="w-4 h-4 text-red-500" />
+        )}
+        <span className={`text-sm ${change > 0 ? 'text-green-500' : 'text-red-500'}`}>
+          {Math.abs(change)}%
+        </span>
+        <span className="text-gray-500 text-sm ml-2">vs last week</span>
+      </div>
+    )}
+  </motion.div>
+);
+
+const TimeRangeSelector = ({ value, onChange }) => (
+  <div className="flex gap-2">
+    {['24h', '7d', '30d', '90d'].map((range) => (
+      <button
+        key={range}
+        onClick={() => onChange(range)}
+        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          value === range
+            ? 'bg-blue-500 text-white'
+            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+        }`}
+      >
+        {range}
+      </button>
+    ))}
+  </div>
+);
+
+export default function AnalyticsDashboard() {
+  const [timeRange, setTimeRange] = useState('7d');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchAnalytics();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchAnalytics, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchAnalytics = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/analytics/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
-      }
-
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+  const [data, setData] = useState({
+    metrics: {
+      totalUsers: 0,
+      activeUsers: 0,
+      averageSessionTime: 0,
+      bounceRate: 0,
+      interactions: 0,
+      socialShares: 0,
+      errors: 0,
+      conversionRate: 0
+    },
+    charts: {
+      userActivity: [],
+      pageViews: [],
+      interactions: [],
+      errors: []
     }
-  };
+  });
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+  // Fetch analytics data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/analytics/data?range=${timeRange}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch analytics data');
+        
+        const result = await response.json();
+        setData(result.data);
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (error) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        Error: {error}
-      </div>
-    );
-  }
+    fetchData();
+  }, [timeRange]);
 
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+  // Calculate trends
+  const trends = useMemo(() => ({
+    users: 12.5,    // Example values - these would come from the API
+    active: 8.3,
+    session: -2.1,
+    bounce: -5.4,
+    interactions: 15.7,
+    shares: 23.4,
+    errors: -8.9,
+    conversion: 18.2
+  }), []);
 
   return (
-    <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Signups</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.totalEntries}</p>
-              <p className="text-sm text-green-600">+{stats.todayEntries} today</p>
-            </div>
+    <div className="min-h-screen bg-[#0B0F17] text-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+            <p className="text-gray-400 mt-2">Track user engagement and platform performance</p>
           </div>
+          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Verified Users</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.verifiedEntries}</p>
-              <p className="text-sm text-green-600">{stats.verificationRate}% rate</p>
-            </div>
-          </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title="Total Users"
+            value={data.metrics.totalUsers.toLocaleString()}
+            change={trends.users}
+            icon={Users}
+            loading={loading}
+          />
+          <MetricCard
+            title="Active Users"
+            value={data.metrics.activeUsers.toLocaleString()}
+            change={trends.active}
+            icon={Activity}
+            loading={loading}
+          />
+          <MetricCard
+            title="Avg. Session Time"
+            value={`${Math.round(data.metrics.averageSessionTime / 60)}m`}
+            change={trends.session}
+            icon={Clock}
+            loading={loading}
+          />
+          <MetricCard
+            title="Bounce Rate"
+            value={`${data.metrics.bounceRate}%`}
+            change={trends.bounce}
+            icon={TrendingUp}
+            loading={loading}
+          />
+          <MetricCard
+            title="User Interactions"
+            value={data.metrics.interactions.toLocaleString()}
+            change={trends.interactions}
+            icon={MousePointer}
+            loading={loading}
+          />
+          <MetricCard
+            title="Social Shares"
+            value={data.metrics.socialShares.toLocaleString()}
+            change={trends.shares}
+            icon={Share2}
+            loading={loading}
+          />
+          <MetricCard
+            title="Error Rate"
+            value={`${data.metrics.errors}%`}
+            change={trends.errors}
+            icon={AlertTriangle}
+            loading={loading}
+          />
+          <MetricCard
+            title="Conversion Rate"
+            value={`${data.metrics.conversionRate}%`}
+            change={trends.conversion}
+            icon={TrendingUp}
+            loading={loading}
+          />
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Page Views</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.totalPageViews}</p>
-              <p className="text-sm text-blue-600">+{stats.todayPageViews} today</p>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* User Activity Chart */}
+          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800/20">
+            <h3 className="text-lg font-semibold mb-6">User Activity</h3>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full w-full bg-gray-800/50 animate-pulse rounded" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.charts.userActivity}>
+                    <defs>
+                      <linearGradient id="userActivityGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        border: '1px solid #374151',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3B82F6"
+                      fill="url(#userActivityGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
+          {/* Page Views Chart */}
+          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800/20">
+            <h3 className="text-lg font-semibold mb-6">Page Views</h3>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full w-full bg-gray-800/50 animate-pulse rounded" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.charts.pageViews}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        border: '1px solid #374151',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.conversionRate}%</p>
-              <p className="text-sm text-gray-500">Views to signups</p>
+          </div>
+
+          {/* Interactions Chart */}
+          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800/20">
+            <h3 className="text-lg font-semibold mb-6">User Interactions</h3>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full w-full bg-gray-800/50 animate-pulse rounded" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.charts.interactions}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                    <XAxis dataKey="type" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        border: '1px solid #374151',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Bar dataKey="value" fill="#8B5CF6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Daily Signups Chart */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Signups (Last 30 Days)</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={stats.dailySignups}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Traffic Sources */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Traffic Sources</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={stats.trafficSources}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ source, percent }) => `${source} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="count"
-              >
-                {stats.trafficSources.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Real-time Activity */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Real-time Overview</h3>
-          <div className="flex items-center text-sm text-gray-500">
-            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-            Live data • Updates every 30s
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 rounded-lg p-4">
-            <div className="text-2xl font-bold text-blue-600">{stats.todayPageViews}</div>
-            <div className="text-sm text-blue-800">Page views today</div>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4">
-            <div className="text-2xl font-bold text-green-600">{stats.todayEntries}</div>
-            <div className="text-sm text-green-800">New signups today</div>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-4">
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.todayPageViews > 0 ? ((stats.todayEntries / stats.todayPageViews) * 100).toFixed(1) : 0}%
+          {/* Error Tracking Chart */}
+          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800/20">
+            <h3 className="text-lg font-semibold mb-6">Error Tracking</h3>
+            <div className="h-80">
+              {loading ? (
+                <div className="h-full w-full bg-gray-800/50 animate-pulse rounded" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.charts.errors}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
+                    <XAxis dataKey="date" stroke="#6B7280" />
+                    <YAxis stroke="#6B7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#111827',
+                        border: '1px solid #374151',
+                        borderRadius: '0.5rem'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#EF4444"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
-            <div className="text-sm text-purple-800">Today's conversion</div>
           </div>
-        </div>
-      </div>
-
-      {/* Top Referrers */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Traffic Sources</h3>
-        <div className="space-y-3">
-          {stats.trafficSources.slice(0, 5).map((source, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-3`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                <span className="font-medium">{source.source}</span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-gray-600 mr-2">{source.count} visits</span>
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(source.count / stats.trafficSources[0].count) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
   );
-};
-
-export default AnalyticsDashboard; 
+} 

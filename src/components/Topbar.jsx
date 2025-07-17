@@ -3,14 +3,14 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, Settings, HelpCircle, Menu, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@clerk/clerk-react'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { toast } from 'react-hot-toast'
 
 export default function Topbar() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const { isSignedIn } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const { data } = useData()
 
   // Get real notifications from data context, or show empty state
@@ -113,14 +113,26 @@ export default function Topbar() {
             </div>
 
             {/* User Menu */}
-            {!isSignedIn && (
-              <div className="w-full">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-300">
+                  {user?.name || user?.email}
+                </span>
                 <button
-                  onClick={handleComingSoon}
-                  className="block w-full text-left text-gray-500 cursor-not-allowed"
+                  onClick={logout}
+                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/auth/google"
+                  className="text-sm text-gray-300 hover:text-white transition-colors"
                 >
                   Sign In
-                </button>
+                </Link>
               </div>
             )}
           </div>
@@ -162,6 +174,21 @@ export default function Topbar() {
             >
               Monitoring
             </button>
+            {isAuthenticated ? (
+              <button
+                onClick={logout}
+                className="block w-full text-left text-gray-300 hover:text-white transition-colors"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                to="/auth/google"
+                className="block text-gray-300 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </motion.div>
       )}

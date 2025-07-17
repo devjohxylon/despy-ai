@@ -1,37 +1,59 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
+import { HelmetProvider } from 'react-helmet-async';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 
-const AdminLogin = lazy(() => import('./components/AdminLogin'));
-const AdminPage = lazy(() => import('./components/AdminPage'));
-const VerifyEmail = lazy(() => import('./components/VerifyEmail'));
+// Lazy load route components
 const LandingPage = lazy(() => import('./components/LandingPage'));
+const NotFound = lazy(() => import('./components/NotFound'));
+const MaintenancePage = lazy(() => import('./components/MaintenancePage'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const AdminLogin = lazy(() => import('./components/AdminLogin'));
 const DashboardPage = lazy(() => import('./components/DashboardPage'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const AlertsPage = lazy(() => import('./components/AlertsPage'));
+const ActivityPage = lazy(() => import('./components/ActivityPage'));
 
-function App() {
-  useEffect(() => {
-    console.log('App loaded');
-  }, []);
+// You can toggle this when needed
+const MAINTENANCE_MODE = false;
 
+// Custom loading component with better UX
+function PageLoadingSpinner() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mr-4"></div>
-        <p className="text-lg text-gray-700">Loading...</p>
-      </div>
-    }>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/dashboard" element={
-          <DashboardPage />
-        } />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        {/* Add other routes here */}
-      </Routes>
-    </Suspense>
+    <div className="min-h-screen bg-[#0B0F17] flex items-center justify-center">
+      <LoadingSpinner />
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  if (MAINTENANCE_MODE) {
+    return (
+      <HelmetProvider>
+        <Suspense fallback={<PageLoadingSpinner />}>
+          <MaintenancePage />
+        </Suspense>
+      </HelmetProvider>
+    );
+  }
+
+  return (
+    <HelmetProvider>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    </HelmetProvider>
+  );
+}
