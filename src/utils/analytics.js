@@ -125,6 +125,14 @@ class Analytics {
         }
       };
 
+      // Debug logging to see what events are being created
+      console.log('Creating analytics event:', {
+        eventName,
+        hasEventProperty: !!event.event,
+        eventObject: event,
+        queueLengthBefore: this.queue.length
+      });
+
       this.queue.push(event);
       this.processQueue();
 

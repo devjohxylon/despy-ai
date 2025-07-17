@@ -27,7 +27,19 @@ export default async function handler(req, res) {
       for (let i = 0; i < events.length; i++) {
         const event = events[i];
         if (!event.event) {
-          console.log(`Analytics validation failed: event ${i} missing event name`, event);
+          console.log(`Analytics validation failed: event ${i} missing event name`, {
+            eventIndex: i,
+            eventData: event,
+            eventKeys: Object.keys(event),
+            hasEvent: 'event' in event,
+            eventValue: event.event,
+            allEvents: events.map((e, idx) => ({ 
+              index: idx, 
+              hasEvent: !!e.event, 
+              eventName: e.event,
+              keys: Object.keys(e)
+            }))
+          });
           return res.status(400).json({ error: `Event ${i} missing event name` });
         }
       }
