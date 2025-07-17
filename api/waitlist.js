@@ -2,19 +2,6 @@ import { createClient } from '@libsql/client';
 
 console.log('Waitlist API module loaded');
 
-// Initialize database client with timeout
-let db;
-try {
-  db = createClient({
-    url: process.env.TURSO_DATABASE_URL || 'file:local.db',
-    authToken: process.env.TURSO_AUTH_TOKEN,
-    timeout: 5000 // 5 second timeout
-  });
-  console.log('Database client initialized');
-} catch (error) {
-  console.error('Failed to initialize database client:', error);
-}
-
 // Helper function to add timeout to promises
 function withTimeout(promise, timeoutMs = 5000) {
   return Promise.race([
@@ -23,6 +10,28 @@ function withTimeout(promise, timeoutMs = 5000) {
       setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
     )
   ]);
+}
+
+// Helper function to create database client
+function createDbClient() {
+  const dbUrl = process.env.TURSO_DATABASE_URL;
+  const dbToken = process.env.TURSO_AUTH_TOKEN;
+  
+  if (!dbUrl || !dbToken) {
+    console.log('Database environment variables not set');
+    return null;
+  }
+  
+  try {
+    return createClient({
+      url: dbUrl,
+      authToken: dbToken,
+      timeout: 5000
+    });
+  } catch (error) {
+    console.error('Failed to create database client:', error);
+    return null;
+  }
 }
 
 export default async function handler(request) {
@@ -61,9 +70,11 @@ export default async function handler(request) {
       });
     }
 
-    console.log('Email validation passed, checking database availability...');
+    console.log('Email validation passed, attempting database operation...');
 
-    // Check if database is available
+    // Create database client only when needed
+    const db = createDbClient();
+    
     if (!db) {
       console.log('Database not available, returning mock response');
       return new Response(JSON.stringify({
