@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 class AuthService {
   constructor() {
     this.baseURL = '/api';
@@ -23,10 +21,20 @@ class AuthService {
 
   async login(email, password) {
     try {
-      const response = await axios.post(`${this.baseURL}/auth/login`, { email, password });
-      this.setUser(response.data.user);
-      localStorage.setItem('token', response.data.token);
-      return response.data;
+      const response = await fetch(`${this.baseURL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (!response.ok) throw new Error('Login failed');
+      
+      const data = await response.json();
+      this.setUser(data.user);
+      localStorage.setItem('token', data.token);
+      return data;
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -51,13 +59,17 @@ class AuthService {
         return null;
       }
 
-      const response = await axios.get(`${this.baseURL}/auth/user`, {
+      const response = await fetch(`${this.baseURL}/auth/user`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      this.setUser(response.data);
-      return response.data;
+      
+      if (!response.ok) throw new Error('Failed to get user');
+      
+      const data = await response.json();
+      this.setUser(data);
+      return data;
     } catch (error) {
       console.error('Failed to get user:', error);
       this.setUser(null);
