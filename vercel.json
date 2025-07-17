@@ -4,7 +4,9 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.js": {
-      "runtime": "@vercel/node@3.0.0"
+      "runtime": "@vercel/node@3.0.0",
+      "memory": 1024,
+      "maxDuration": 10
     }
   },
   "routes": [
@@ -16,5 +18,8 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "NODE_VERSION": "18.x"
+  }
 }
