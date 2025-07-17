@@ -26,7 +26,7 @@ function createDbClient() {
     return createClient({
       url: dbUrl,
       authToken: dbToken,
-      timeout: 5000
+      timeout: 3000 // Reduced timeout
     });
   } catch (error) {
     console.error('Failed to create database client:', error);
@@ -104,35 +104,46 @@ export default async function handler(request) {
     try {
       console.log('Executing database insert with timeout...');
       
-      // First, try to create the table if it doesn't exist
+      // Try to insert directly first - if table doesn't exist, it will fail and we'll create it
+      let insertSuccess = false;
       try {
-        await withTimeout(db.execute(`
-          CREATE TABLE IF NOT EXISTS waitlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            name TEXT,
-            company TEXT,
-            role TEXT,
-            interests TEXT,
-            referral_code TEXT UNIQUE,
-            referred_by TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          )
-        `), 2000);
-        console.log('Table creation/verification successful');
-      } catch (tableError) {
-        console.warn('Table creation failed, continuing with insert:', tableError);
+        await withTimeout(db.execute({
+          sql: 'INSERT INTO waitlist (email) VALUES (?)',
+          args: [email]
+        }), 2000); // Reduced timeout to 2 seconds
+        insertSuccess = true;
+        console.log('Database insert successful');
+      } catch (insertError) {
+        // If insert fails due to missing table, create it and try again
+        if (insertError.message && insertError.message.includes('no such table')) {
+          console.log('Table missing, creating it...');
+          await withTimeout(db.execute(`
+            CREATE TABLE IF NOT EXISTS waitlist (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              email TEXT UNIQUE NOT NULL,
+              name TEXT,
+              company TEXT,
+              role TEXT,
+              interests TEXT,
+              referral_code TEXT UNIQUE,
+              referred_by TEXT,
+              status TEXT DEFAULT 'pending',
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `), 2000);
+          
+          // Try insert again
+          await withTimeout(db.execute({
+            sql: 'INSERT INTO waitlist (email) VALUES (?)',
+            args: [email]
+          }), 2000);
+          insertSuccess = true;
+          console.log('Database insert successful after table creation');
+        } else {
+          throw insertError; // Re-throw if it's not a missing table error
+        }
       }
-      
-      const insertPromise = db.execute({
-        sql: 'INSERT INTO waitlist (email) VALUES (?)',
-        args: [email]
-      });
-      
-      await withTimeout(insertPromise, 3000); // 3 second timeout for database operation
-      console.log('Database insert successful');
       
     } catch (dbError) {
       console.warn('Database error:', dbError);
