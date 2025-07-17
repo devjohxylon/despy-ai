@@ -1,7 +1,7 @@
-import { Database } from '@libsql/client';
+import { createClient } from '@libsql/client';
 
 // Initialize database connection
-const db = new Database({
+const db = createClient({
   url: process.env.TURSO_DATABASE_URL,
   authToken: process.env.TURSO_AUTH_TOKEN
 });

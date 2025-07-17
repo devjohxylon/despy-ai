@@ -92,8 +92,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['framer-motion', 'react-hot-toast'],
-          'analytics-vendor': ['../utils/analytics']
+          'ui-vendor': ['framer-motion', 'react-hot-toast']
         }
       }
     },
