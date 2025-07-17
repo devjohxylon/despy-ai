@@ -57,8 +57,22 @@ class Analytics {
     this.queue = [];
 
     try {
+      // Filter out invalid events
+      const validEvents = events.filter((event, index) => {
+        const isValid = event && typeof event === 'object' && event.event && typeof event.event === 'string' && event.event.trim() !== '';
+        if (!isValid) {
+          console.warn(`Filtering out invalid event at index ${index}:`, event);
+        }
+        return isValid;
+      });
+
+      if (validEvents.length === 0) {
+        console.log('No valid events to send, skipping API call');
+        return;
+      }
+
       const payload = {
-        events,
+        events: validEvents,
         sessionId: this.sessionId,
         timestamp: Date.now(),
         userAgent: navigator.userAgent,
@@ -69,7 +83,16 @@ class Analytics {
       };
 
       // Log the payload being sent for debugging
-      console.log('Sending analytics payload:', payload);
+      console.log('Sending analytics payload:', {
+        originalEventCount: events.length,
+        validEventCount: validEvents.length,
+        filteredOut: events.length - validEvents.length,
+        events: validEvents.map((event, index) => ({
+          index,
+          eventName: event.event,
+          hasProperties: !!event.properties
+        }))
+      });
 
       const response = await fetch(ANALYTICS_ENDPOINT, {
         method: 'POST',
@@ -93,8 +116,9 @@ class Analytics {
       const result = await response.json();
       console.log('Analytics request successful:', result);
     } catch (error) {
-      // Re-queue failed events
-      this.queue = [...events, ...this.queue];
+      // Re-queue failed events (only the valid ones)
+      const validEvents = events.filter(event => event && event.event);
+      this.queue = [...validEvents, ...this.queue];
       console.error('Failed to send analytics:', error);
       console.error('Failed payload was:', {
         events,
