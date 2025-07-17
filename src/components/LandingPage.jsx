@@ -166,12 +166,17 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Modal: Form submitted!');
+    alert('Form submitted!'); // Temporary debug alert
+    
     const error = validateEmail(email);
     if (error) {
+      console.log('Modal: Validation error:', error);
       setEmailError(error);
       return;
     }
 
+    console.log('Modal: Setting isSubmitting to true');
     setIsSubmitting(true);
     setEmailError(''); // Clear any previous errors
     
