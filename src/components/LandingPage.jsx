@@ -360,7 +360,14 @@ export default function LandingPage() {
         data = await response.json();
       } catch (parseError) {
         console.error('Failed to parse response as JSON:', parseError);
-        throw new Error('Server returned invalid response. Please try again.');
+        console.error('Response status:', response.status);
+        console.error('Response headers:', response.headers);
+        
+        // Get the actual response text for debugging
+        const responseText = await response.text();
+        console.error('Response text:', responseText);
+        
+        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
       }
       
       if (!response.ok) {

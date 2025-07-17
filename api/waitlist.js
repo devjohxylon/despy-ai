@@ -6,7 +6,10 @@ const db = createClient({
 });
 
 export default async function handler(request) {
+  console.log('Waitlist API called:', request.method, request.url);
+  
   if (request.method !== 'POST') {
+    console.log('Method not allowed:', request.method);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers:{'Content-Type': 'application/json'}
@@ -17,7 +20,10 @@ export default async function handler(request) {
     const body = await request.json();
     const { email } = body;
 
+    console.log('Received email:', email);
+
     if (!email) {
+      console.log('Email is required');
       return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
         headers:{'Content-Type': 'application/json'}
@@ -27,11 +33,14 @@ export default async function handler(request) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      console.log('Invalid email format:', email);
       return new Response(JSON.stringify({ error: 'Invalid email format' }), {
         status: 400,
         headers:{'Content-Type': 'application/json'}
       });
     }
+
+    console.log('Attempting database insert...');
 
     // Try to insert into database, fallback to mock if not configured
     try {
@@ -39,11 +48,13 @@ export default async function handler(request) {
         sql: 'INSERT INTO waitlist (email) VALUES (?)',
         args: [email]
       });
+      console.log('Database insert successful');
     } catch (dbError) {
       console.warn('Database error (using mock response):', dbError);
       
       // Check for unique constraint violation
       if (dbError.message && dbError.message.includes('UNIQUE constraint failed')) {
+        console.log('Email already exists:', email);
         return new Response(JSON.stringify({ 
           error: 'This email is already on our waitlist!',
           code: 'EMAIL_EXISTS'
@@ -54,6 +65,7 @@ export default async function handler(request) {
       }
       
       // Return mock success response if database fails
+      console.log('Returning mock response');
       return new Response(JSON.stringify({
         success: true,
         message: 'Successfully joined waitlist (mock)',
@@ -64,6 +76,7 @@ export default async function handler(request) {
       });
     }
 
+    console.log('Returning success response');
     return new Response(JSON.stringify({
       success: true,
       message: 'Successfully joined waitlist',
@@ -74,7 +87,10 @@ export default async function handler(request) {
     });
   } catch (error) {
     console.error('Waitlist error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message 
+    }), {
       status: 500,
       headers:{'Content-Type': 'application/json'}
     });

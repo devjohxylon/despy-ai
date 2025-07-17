@@ -13,7 +13,8 @@
     "start": "vite",
     "test": "vitest",
     "deploy-check": "node scripts/deploy-check.js",
-    "setup": "node scripts/setup.js"
+    "setup": "node scripts/setup.js",
+
   },
   "dependencies": {
     "@libsql/client": "^0.5.6",
