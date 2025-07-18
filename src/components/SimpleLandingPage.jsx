@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import analytics from '../utils/analytics';
 import { toast } from 'react-hot-toast';
+import getApiUrl from '../utils/api';
 
 export default function SimpleLandingPage() {
   const { isAuthenticated } = useAuth();
@@ -15,7 +16,7 @@ export default function SimpleLandingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/stats');
+        const res = await fetch(getApiUrl('stats'));
         if (res.ok) {
           const data = await res.json();
           setWaitlistCount(data.total || 0);
@@ -35,7 +36,7 @@ export default function SimpleLandingPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/waitlist', {
+      const response = await fetch(getApiUrl('waitlist'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

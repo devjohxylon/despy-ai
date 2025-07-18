@@ -1,6 +1,9 @@
 class AuthService {
   constructor() {
-    this.baseURL = '/api';
+    // Use Railway backend URL in production, fallback to localhost for local dev
+    this.baseURL = import.meta.env.PROD 
+      ? 'https://despy-ai-production.up.railway.app/api'
+      : 'http://localhost:3001/api';
     this.user = null;
     this.listeners = new Set();
   }

@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Shield, Lock, Eye, Zap, Clock, Bell, LineChart } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
 import analytics from '../utils/analytics';
+import getApiUrl from '../utils/api';
 
 // Simplified background with reduced animations
 const AnimatedBackground = memo(() => (
@@ -329,7 +330,7 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('/api/stats');
+        const res = await fetch(getApiUrl('stats'));
         if (res.ok) {
           const data = await res.json();
           setWaitlistCount(data.total || 0);
@@ -351,7 +352,7 @@ export default function LandingPage() {
     try {
       analytics.waitlist.submit(email);
 
-      const response = await fetch('/api/waitlist', {
+      const response = await fetch(getApiUrl('waitlist'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
