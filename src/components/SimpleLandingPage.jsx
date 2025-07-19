@@ -44,16 +44,25 @@ export default function SimpleLandingPage() {
         body: JSON.stringify({ email })
       });
 
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        // Try to parse error response as JSON first
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          // If JSON parsing fails, it's likely HTML (404, 500, etc.)
+          throw new Error(`Server error (${response.status}): ${response.statusText}`);
+        }
+        throw new Error(errorData.error || `Server error (${response.status})`);
+      }
+
+      // Try to parse successful response
       let data;
       try {
         data = await response.json();
       } catch (parseError) {
-        console.error('Failed to parse response as JSON:', parseError);
-        throw new Error('Server returned invalid response. Please try again.');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to join waitlist');
+        throw new Error('Invalid response from server. Please try again.');
       }
 
       // Track successful signup
@@ -71,6 +80,7 @@ export default function SimpleLandingPage() {
         style: { background: '#1F2937', color: '#F3F4F6' }
       });
     } catch (error) {
+      console.error('Waitlist error:', error);
       setError(error.message);
       // Track failed signup
       analytics.trackEvent('waitlist_signup', { email, status: 'error', error: error.message });

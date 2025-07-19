@@ -44,7 +44,8 @@ import {
   TrendingUp,
   Star,
   ArrowRight,
-  Play
+  Play,
+  Cpu
 } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
 import analytics from '../utils/analytics';
@@ -286,7 +287,7 @@ export default function LandingPage() {
 
   const handleJoinWaitlist = async (email) => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/waitlist`, {
+      const response = await fetch(`${getApiUrl()}/waitlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -294,10 +295,25 @@ export default function LandingPage() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to join waitlist');
+        // Try to parse error response as JSON first
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          // If JSON parsing fails, it's likely HTML (404, 500, etc.)
+          throw new Error(`Server error (${response.status}): ${response.statusText}`);
+        }
+        throw new Error(errorData.error || `Server error (${response.status})`);
+      }
+
+      // Try to parse successful response
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        throw new Error('Invalid response from server. Please try again.');
       }
 
       toast.success('Successfully joined the waitlist!');
@@ -307,6 +323,8 @@ export default function LandingPage() {
       // Track analytics
       analytics.track('waitlist_joined', { email });
     } catch (error) {
+      console.error('Waitlist error:', error);
+      toast.error(error.message || 'Failed to join waitlist. Please try again.');
       throw error;
     }
   };
@@ -343,9 +361,9 @@ export default function LandingPage() {
       color: 'bg-red-500/20'
     },
     {
-      icon: Users,
-      title: 'Community Driven',
-      description: 'Join thousands of users already protecting their assets with DeSpy AI.',
+      icon: Cpu,
+      title: 'AI-Powered Insights',
+      description: 'Leverage machine learning algorithms to identify patterns and predict potential security threats.',
       color: 'bg-indigo-500/20'
     }
   ];
