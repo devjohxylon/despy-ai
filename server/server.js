@@ -1375,5 +1375,7 @@ app.listen(PORT, () => {
   console.log(`📧 Resend configured: ${!!process.env.RESEND_API_KEY ? '✅' : '❌'}`);
   console.log(`💳 Stripe configured: ${!!process.env.STRIPE_SECRET_KEY ? '✅' : '❌'}`);
   console.log(`🔒 Security: Environment validation passed`);
-  console.log(`🚀 DeSpy AI Backend with Stripe Integration Ready!`);
+  console.log(`🚀 DeSpy AI Backend with Stripe Integration Ready! - DEPLOYMENT V2`);
+console.log(`💳 Payment endpoints: /api/payment/create-intent, /api/payment/confirm`);
+console.log(`🔧 Stripe integration: ${!!process.env.STRIPE_SECRET_KEY ? 'CONFIGURED' : 'MISSING KEY'}`);
 }); 
