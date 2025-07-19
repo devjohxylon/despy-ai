@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
 import { 
   Coins, 
   Zap, 
@@ -29,7 +28,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   const [showStripePayment, setShowStripePayment] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
 
-  const plans = [
+  const plans = useMemo(() => [
     {
       id: 'starter',
       name: 'Starter',
@@ -57,22 +56,22 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
       features: ['Unlimited scanning', '24/7 support', 'Custom reports', '20 scans per month', 'Dedicated account manager'],
       popular: false
     }
-  ];
+  ], []);
 
-  const tokenPackages = [
+  const tokenPackages = useMemo(() => [
     { tokens: 100, price: 2.99, bonus: 0, popular: false },
     { tokens: 250, price: 6.99, bonus: 25, popular: false },
     { tokens: 500, price: 10.00, bonus: 50, popular: true },
     { tokens: 1000, price: 18.00, bonus: 100, popular: false },
     { tokens: 2500, price: 40.00, bonus: 300, popular: false }
-  ];
+  ], []);
 
-  const usageStats = [
+  const usageStats = useMemo(() => [
     { label: 'Total Scans', value: 12, icon: Zap },
     { label: 'Tokens Used', value: 1200, icon: Coins },
     { label: 'Tokens Remaining', value: userTokens, icon: Gift },
     { label: 'Days Active', value: 7, icon: Clock }
-  ];
+  ], [userTokens]);
 
   const handlePurchaseTokens = async (tokenPackage) => {
     setSelectedPackage(tokenPackage);
@@ -125,11 +124,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto"
-      >
+      <div className="bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-white">Token & Subscription Management</h2>
@@ -216,11 +211,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {usageStats.map((stat, index) => (
-                <motion.div
+                <div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
                   className="bg-gray-800/50 rounded-xl p-4"
                 >
                   <div className="flex items-center gap-3">
@@ -232,7 +224,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
                       <p className="text-xl font-bold text-white">{stat.value.toLocaleString()}</p>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
 
@@ -249,62 +241,58 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
                       </div>
                     </div>
                     <div className="text-sm text-gray-400">
-                      {subscription.tokens} tokens included monthly
+                      <p>• {subscription.tokens} tokens per month</p>
+                      <p>• {subscription.scans} scans included</p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
                     <Crown className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-400">No active subscription</p>
-                    <button
-                      onClick={() => setActiveTab('subscription')}
-                      className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                      View Plans
-                    </button>
+                    <p className="text-sm text-gray-500">Subscribe to get more tokens and features</p>
                   </div>
                 )}
               </div>
 
               <div className="bg-gray-800/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
                 <div className="space-y-3">
-                  <button
-                    onClick={() => setActiveTab('purchase')}
-                    className="w-full flex items-center justify-between p-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-600/30 rounded-lg transition-colors"
-                  >
-                    <span className="text-white">Buy More Tokens</span>
-                    <Coins className="w-5 h-5 text-blue-400" />
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('subscription')}
-                    className="w-full flex items-center justify-between p-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/30 rounded-lg transition-colors"
-                  >
-                    <span className="text-white">Upgrade Subscription</span>
-                    <Crown className="w-5 h-5 text-purple-400" />
-                  </button>
+                  {usageHistory.length === 0 ? (
+                    <div className="text-center py-4">
+                      <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-400">No recent activity</p>
+                    </div>
+                  ) : (
+                    usageHistory.slice(0, 3).map((item, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
+                        <Zap className="w-4 h-4 text-blue-400" />
+                        <div className="flex-1">
+                          <p className="text-white text-sm">{item.action}</p>
+                          <p className="text-gray-400 text-xs">{item.date}</p>
+                        </div>
+                        <span className="text-red-400 text-sm">-{item.tokens}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Purchase Tokens Tab */}
+        {/* Purchase Tab */}
         {activeTab === 'purchase' && (
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-semibold text-white mb-4">Purchase Additional Tokens</h3>
-              <p className="text-gray-400 mb-6">Buy tokens to continue scanning contracts and analyzing security</p>
+              <h3 className="text-xl font-semibold text-white mb-4">Buy Token Packages</h3>
+              <p className="text-gray-400 mb-6">Choose a token package that fits your needs</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {tokenPackages.map((pkg, index) => (
-                <motion.div
+                <div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`bg-gray-800/50 border rounded-xl p-6 transition-colors ${
+                  className={`relative bg-gray-800/50 border rounded-xl p-6 transition-colors ${
                     pkg.popular 
                       ? 'border-purple-600/50 bg-purple-600/10' 
                       : 'border-gray-700 hover:border-blue-600/50'
@@ -350,7 +338,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
                       {loading ? 'Processing...' : 'Purchase'}
                     </button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
             
@@ -374,11 +362,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {plans.map((plan, index) => (
-                <motion.div
+                <div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
                   className={`relative bg-gray-800/50 border rounded-xl p-6 ${
                     plan.popular 
                       ? 'border-purple-600/50 bg-purple-600/10' 
@@ -440,7 +425,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
                       {loading ? 'Processing...' : plan.price === 0 ? 'Get Started' : 'Subscribe'}
                     </button>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -485,7 +470,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {showStripePayment && selectedPackage && (
         <StripePayment
