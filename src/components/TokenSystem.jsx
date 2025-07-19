@@ -16,7 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import getApiUrl from '../utils/api';
+import getApiUrl, { getApiUrlWithCacheBust } from '../utils/api';
 import StripePayment from './StripePayment';
 
 const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
@@ -78,7 +78,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
       const amount = tokenPackage.price;
       
       // Call backend to create payment intent
-      const response = await fetch(getApiUrl('payment/create-intent'), {
+      const response = await fetch(getApiUrlWithCacheBust('payment/create-intent'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -14,4 +14,11 @@ const getApiUrl = (endpoint = '') => {
   return `${baseURL}/${cleanEndpoint}`;
 };
 
+// Force cache busting for API calls
+export const getApiUrlWithCacheBust = (endpoint = '') => {
+  const url = getApiUrl(endpoint);
+  const timestamp = Date.now();
+  return `${url}?_cb=${timestamp}`;
+};
+
 export default getApiUrl; 

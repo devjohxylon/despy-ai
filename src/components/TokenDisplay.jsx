@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Coins, Zap, Crown, Plus } from 'lucide-react';
+import { Coins, Zap, TrendingUp, Gift, Crown } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import TokenSystem from './TokenSystem';
-import getApiUrl from '../utils/api';
+import getApiUrl, { getApiUrlWithCacheBust } from '../utils/api';
 
 const TokenDisplay = ({ onTokenUpdate }) => {
   const [tokens, setTokens] = useState(500);
@@ -17,10 +18,8 @@ const TokenDisplay = ({ onTokenUpdate }) => {
   const fetchTokenInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch(getApiUrl('user/tokens'), {
-        method: 'GET',
+      const response = await fetch(getApiUrlWithCacheBust('user/tokens'), {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
         }
       });
@@ -93,7 +92,7 @@ const TokenDisplay = ({ onTokenUpdate }) => {
           onClick={() => setShowTokenModal(true)}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-colors"
         >
-          <Plus className="w-4 h-4" />
+          <Gift className="w-4 h-4" />
           <span className="text-sm font-medium">Buy Tokens</span>
         </button>
       </motion.div>
