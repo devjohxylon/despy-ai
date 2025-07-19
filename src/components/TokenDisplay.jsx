@@ -4,6 +4,7 @@ import { Coins, Zap, TrendingUp, Gift, Crown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import TokenSystem from './TokenSystem';
 import getApiUrl, { getApiUrlWithCacheBust } from '../utils/api';
+import { secureTokenStorage } from '../utils/security';
 
 const TokenDisplay = ({ onTokenUpdate }) => {
   const [tokens, setTokens] = useState(500);
@@ -20,7 +21,7 @@ const TokenDisplay = ({ onTokenUpdate }) => {
       setLoading(true);
       const response = await fetch(getApiUrlWithCacheBust('user/tokens'), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${secureTokenStorage.getToken()}`
         }
       });
 

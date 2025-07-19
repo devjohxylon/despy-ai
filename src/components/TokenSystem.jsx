@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import getApiUrl, { getApiUrlWithCacheBust } from '../utils/api';
+import { secureTokenStorage } from '../utils/security';
 import StripePayment from './StripePayment';
 
 const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
@@ -82,7 +83,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${secureTokenStorage.getToken()}`
         },
         body: JSON.stringify({
           amount: Math.round(amount * 100), // Convert to cents
