@@ -26,6 +26,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   const [subscription, setSubscription] = useState(null);
   const [usageHistory, setUsageHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showStripePayment, setShowStripePayment] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState(null);
 
   const plans = [
     {
@@ -73,47 +75,27 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   ];
 
   const handlePurchaseTokens = async (tokenPackage) => {
-    setLoading(true);
-    try {
-      const totalTokens = tokenPackage.tokens + tokenPackage.bonus;
-      const amount = tokenPackage.price;
-      
-      // Call backend to create payment intent
-      const response = await fetch(getApiUrlWithCacheBust('payment/create-intent'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${secureTokenStorage.getToken()}`
-        },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100), // Convert to cents
-          description: `Purchase ${totalTokens} tokens`
-        })
-      });
+    setSelectedPackage(tokenPackage);
+    setShowStripePayment(true);
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to create payment intent');
-      }
-
-      const { clientSecret } = await response.json();
-      
-      // For now, simulate successful payment
-      // In production, this would integrate with Stripe Elements
-      const newTokens = userTokens + totalTokens;
-      setUserTokens(newTokens);
-      
-      toast.success(`Successfully purchased ${totalTokens} tokens!`);
-      
-      // Update parent component
-      if (onTokenUpdate) {
-        onTokenUpdate(newTokens);
-      }
-    } catch (error) {
-      toast.error('Purchase failed. Please try again.');
-      console.error('Purchase error:', error);
-    } finally {
-      setLoading(false);
+  const handlePaymentSuccess = (totalTokens) => {
+    const newTokens = userTokens + totalTokens;
+    setUserTokens(newTokens);
+    setShowStripePayment(false);
+    setSelectedPackage(null);
+    
+    toast.success(`Successfully purchased ${totalTokens} tokens!`);
+    
+    // Update parent component
+    if (onTokenUpdate) {
+      onTokenUpdate(newTokens);
     }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowStripePayment(false);
+    setSelectedPackage(null);
   };
 
   const handleSubscribe = async (plan) => {
@@ -504,6 +486,15 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
           </div>
         )}
       </motion.div>
+
+      {showStripePayment && selectedPackage && (
+        <StripePayment
+          amount={selectedPackage.price}
+          description={`Purchase ${selectedPackage.tokens + selectedPackage.bonus} tokens`}
+          onSuccess={() => handlePaymentSuccess(selectedPackage.tokens + selectedPackage.bonus)}
+          onCancel={handlePaymentCancel}
+        />
+      )}
     </div>
   );
 };
