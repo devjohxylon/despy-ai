@@ -1,6 +1,7 @@
 // Performance optimization utilities
+import React from 'react';
 
-// Debounce function to limit API calls
+// Debounce function for input handlers
 export const debounce = (func, wait) => {
   let timeout;
   return function executedFunction(...args) {
@@ -13,7 +14,7 @@ export const debounce = (func, wait) => {
   };
 };
 
-// Throttle function for scroll events
+// Throttle function for scroll events and animations
 export const throttle = (func, limit) => {
   let inThrottle;
   return function() {
@@ -23,6 +24,20 @@ export const throttle = (func, limit) => {
       func.apply(context, args);
       inThrottle = true;
       setTimeout(() => inThrottle = false, limit);
+    }
+  };
+};
+
+// RequestAnimationFrame throttle for smooth animations
+export const rafThrottle = (func) => {
+  let ticking = false;
+  return function(...args) {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        func.apply(this, args);
+        ticking = false;
+      });
+      ticking = true;
     }
   };
 };
@@ -65,9 +80,9 @@ export const createDataManager = (maxItems = 1000) => {
     set: (key, value) => {
       if (cache.size >= maxItems) {
         // Remove least recently used item
-        const oldestKey = accessOrder.shift();
-        if (oldestKey) {
-          cache.delete(oldestKey);
+        const lruKey = accessOrder.shift();
+        if (lruKey) {
+          cache.delete(lruKey);
         }
       }
       
@@ -87,7 +102,7 @@ export const memoizeComponent = (Component, propsAreEqual) => {
   return React.memo(Component, propsAreEqual);
 };
 
-// Lazy loading helper
+// Lazy loading helper with Intersection Observer
 export const createLazyLoader = (loadFunction, options = {}) => {
   const {
     threshold = 0.1,
@@ -112,145 +127,73 @@ export const createLazyLoader = (loadFunction, options = {}) => {
       );
       
       observer.observe(element);
-      return observer;
+      return () => observer.disconnect();
     }
   };
 };
 
-// Animation performance optimization
-export const optimizeAnimations = () => {
-  // Enable hardware acceleration for animations
-  const style = document.createElement('style');
-  style.textContent = `
-    .animate-optimized {
-      will-change: transform, opacity;
-      transform: translateZ(0);
-    }
-    
-    .reduce-motion {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  `;
-  document.head.appendChild(style);
+// Image optimization helper
+export const optimizeImage = (src, options = {}) => {
+  const { width, height, quality = 80, format = 'webp' } = options;
   
-  // Respect user's motion preferences
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.body.classList.add('reduce-motion');
-  }
+  // For now, return the original src
+  // In production, you'd integrate with an image optimization service
+  return src;
 };
 
-// Bundle size optimization
-export const preloadCriticalResources = () => {
-  // Preload critical CSS and JS
-  const criticalResources = [
-    '/src/components/DashboardPage.jsx',
-    '/src/components/TokenSystem.jsx'
-  ];
-  
-  criticalResources.forEach(resource => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.href = resource;
-    link.as = 'script';
-    document.head.appendChild(link);
-  });
-};
-
-// Network optimization
-export const createRequestQueue = (maxConcurrent = 3) => {
-  let running = 0;
-  const queue = [];
-  
-  const processQueue = () => {
-    if (queue.length === 0 || running >= maxConcurrent) return;
-    
-    running++;
-    const { request, resolve, reject } = queue.shift();
-    
-    request()
-      .then(resolve)
-      .catch(reject)
-      .finally(() => {
-        running--;
-        processQueue();
-      });
-  };
+// Event listener cleanup helper
+export const createEventManager = () => {
+  const listeners = [];
   
   return {
-    add: (request) => {
-      return new Promise((resolve, reject) => {
-        queue.push({ request, resolve, reject });
-        processQueue();
-      });
-    }
-  };
-};
-
-// Memory leak prevention
-export const createCleanupManager = () => {
-  const cleanupTasks = [];
-  
-  return {
-    add: (task) => {
-      cleanupTasks.push(task);
+    add: (element, event, handler, options = {}) => {
+      element.addEventListener(event, handler, options);
+      listeners.push({ element, event, handler, options });
     },
     
-    cleanup: () => {
-      cleanupTasks.forEach(task => {
-        try {
-          task();
-        } catch (error) {
-          console.error('Cleanup task failed:', error);
-        }
+    remove: (element, event, handler) => {
+      element.removeEventListener(event, handler);
+      const index = listeners.findIndex(
+        l => l.element === element && l.event === event && l.handler === handler
+      );
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    },
+    
+    clear: () => {
+      listeners.forEach(({ element, event, handler, options }) => {
+        element.removeEventListener(event, handler, options);
       });
-      cleanupTasks.length = 0;
+      listeners.length = 0;
     }
   };
 };
 
 // Performance monitoring
 export const createPerformanceMonitor = () => {
-  const metrics = {
-    renderTime: [],
-    memoryUsage: [],
-    networkRequests: []
-  };
+  const metrics = {};
   
   return {
-    startTimer: (name) => {
+    start: (name) => {
+      metrics[name] = performance.now();
+    },
+    
+    end: (name) => {
+      if (metrics[name]) {
+        const duration = performance.now() - metrics[name];
+        console.log(`${name}: ${duration.toFixed(2)}ms`);
+        delete metrics[name];
+        return duration;
+      }
+    },
+    
+    measure: async (name, fn) => {
       const start = performance.now();
-      return () => {
-        const duration = performance.now() - start;
-        metrics[name] = metrics[name] || [];
-        metrics[name].push(duration);
-        
-        // Keep only last 100 measurements
-        if (metrics[name].length > 100) {
-          metrics[name].shift();
-        }
-      };
-    },
-    
-    getMetrics: () => {
-      return Object.keys(metrics).reduce((acc, key) => {
-        const values = metrics[key];
-        if (values.length === 0) return acc;
-        
-        acc[key] = {
-          average: values.reduce((sum, val) => sum + val, 0) / values.length,
-          min: Math.min(...values),
-          max: Math.max(...values),
-          count: values.length
-        };
-        return acc;
-      }, {});
-    },
-    
-    logMetrics: () => {
-      const currentMetrics = this.getMetrics();
-      console.log('Performance Metrics:', currentMetrics);
+      const result = await fn();
+      const duration = performance.now() - start;
+      console.log(`${name}: ${duration.toFixed(2)}ms`);
+      return result;
     }
   };
 }; 

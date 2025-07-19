@@ -123,19 +123,33 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="token-modal-title"
+      aria-describedby="token-modal-description"
+    >
+      <div 
+        className="bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+        role="document"
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Token & Subscription Management</h2>
-            <p className="text-gray-400">Manage your tokens and subscription plans</p>
+            <h2 id="token-modal-title" className="text-2xl font-bold text-white">
+              Token & Subscription Management
+            </h2>
+            <p id="token-modal-description" className="text-gray-300">
+              Manage your tokens and subscription plans
+            </p>
           </div>
           
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Close token management modal"
           >
-            <X className="w-6 h-6 text-gray-400" />
+            <X className="w-6 h-6 text-gray-300" />
           </button>
         </div>
 
@@ -143,345 +157,282 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
         <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-600/30 rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-600/20 rounded-xl">
+              <div className="p-3 bg-blue-600/20 rounded-xl" aria-hidden="true">
                 <Coins className="w-8 h-8 text-blue-400" />
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-white">{userTokens.toLocaleString()}</h3>
-                <p className="text-gray-400">Available Tokens</p>
+                <p className="text-gray-300">Available Tokens</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-400">Cost per scan</p>
+              <p className="text-sm text-gray-300">Cost per scan</p>
               <p className="text-xl font-bold text-white">100 tokens</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-800/50 rounded-lg p-1">
+        <div className="flex gap-1 mb-6 bg-gray-800/50 rounded-lg p-1" role="tablist" aria-label="Token management tabs">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               activeTab === 'overview' 
                 ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'overview'}
+            aria-controls="overview-panel"
           >
             <TrendingUp className="w-4 h-4" />
             Overview
           </button>
           <button
             onClick={() => setActiveTab('purchase')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               activeTab === 'purchase' 
                 ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'purchase'}
+            aria-controls="purchase-panel"
           >
             <CreditCard className="w-4 h-4" />
             Buy Tokens
           </button>
           <button
             onClick={() => setActiveTab('subscription')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               activeTab === 'subscription' 
                 ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'subscription'}
+            aria-controls="subscription-panel"
           >
             <Crown className="w-4 h-4" />
             Subscriptions
           </button>
           <button
             onClick={() => setActiveTab('usage')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               activeTab === 'usage' 
                 ? 'bg-blue-600 text-white' 
-                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
+            role="tab"
+            aria-selected={activeTab === 'usage'}
+            aria-controls="usage-panel"
           >
             <Clock className="w-4 h-4" />
             Usage History
           </button>
         </div>
 
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {usageStats.map((stat, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-800/50 rounded-xl p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-600/20 rounded-lg">
-                      <stat.icon className="w-5 h-5 text-blue-400" />
+        {/* Tab Panels */}
+        <div role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={`${activeTab}-tab`}>
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Usage Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {usageStats.map((stat, index) => (
+                  <div key={stat.label} className="bg-gray-800/50 rounded-lg p-4 text-center">
+                    <div className="flex justify-center mb-2">
+                      <stat.icon className="w-6 h-6 text-blue-400" aria-hidden="true" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-400">{stat.label}</p>
-                      <p className="text-xl font-bold text-white">{stat.value.toLocaleString()}</p>
-                    </div>
+                    <div className="text-2xl font-bold text-white">{stat.value.toLocaleString()}</div>
+                    <div className="text-sm text-gray-300">{stat.label}</div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-800/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Current Subscription</h3>
-                {subscription ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Crown className="w-6 h-6 text-yellow-400" />
-                      <div>
-                        <p className="font-medium text-white">{subscription.name} Plan</p>
-                        <p className="text-sm text-gray-400">${subscription.price}/month</p>
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      <p>• {subscription.tokens} tokens per month</p>
-                      <p>• {subscription.scans} scans included</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Crown className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-400">No active subscription</p>
-                    <p className="text-sm text-gray-500">Subscribe to get more tokens and features</p>
-                  </div>
-                )}
+                ))}
               </div>
 
-              <div className="bg-gray-800/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-                <div className="space-y-3">
-                  {usageHistory.length === 0 ? (
-                    <div className="text-center py-4">
-                      <Clock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-400">No recent activity</p>
-                    </div>
-                  ) : (
-                    usageHistory.slice(0, 3).map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg">
-                        <Zap className="w-4 h-4 text-blue-400" />
-                        <div className="flex-1">
-                          <p className="text-white text-sm">{item.action}</p>
-                          <p className="text-gray-400 text-xs">{item.date}</p>
-                        </div>
-                        <span className="text-red-400 text-sm">-{item.tokens}</span>
-                      </div>
-                    ))
-                  )}
+              {/* Quick Actions */}
+              <div className="bg-gray-800/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setActiveTab('purchase')}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Buy More Tokens
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('subscription')}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <Crown className="w-4 h-4" />
+                    View Plans
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Purchase Tab */}
-        {activeTab === 'purchase' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-4">Buy Token Packages</h3>
-              <p className="text-gray-400 mb-6">Choose a token package that fits your needs</p>
-            </div>
+          {activeTab === 'purchase' && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-white mb-2">Purchase Tokens</h3>
+                <p className="text-gray-300">Choose a token package that fits your needs</p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {tokenPackages.map((pkg, index) => (
-                <div
-                  key={index}
-                  className={`relative bg-gray-800/50 border rounded-xl p-6 transition-colors ${
-                    pkg.popular 
-                      ? 'border-purple-600/50 bg-purple-600/10' 
-                      : 'border-gray-700 hover:border-blue-600/50'
-                  }`}
-                >
-                  {pkg.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        Most Popular
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <Coins className="w-6 h-6 text-blue-400" />
-                      <span className="text-2xl font-bold text-white">{pkg.tokens}</span>
-                    </div>
-                    
-                    {pkg.bonus > 0 && (
-                      <div className="bg-green-600/20 border border-green-600/30 rounded-lg p-2">
-                        <p className="text-sm text-green-400">+{pkg.bonus} Bonus</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tokenPackages.map((pkg, index) => (
+                  <div
+                    key={pkg.tokens}
+                    className={`relative bg-gray-800/50 rounded-lg p-6 border transition-all duration-200 hover:border-blue-500/50 focus-within:border-blue-500/50 ${
+                      pkg.popular ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-700/50'
+                    }`}
+                  >
+                    {pkg.popular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+                          Most Popular
+                        </span>
                       </div>
                     )}
                     
-                    <div>
-                      <p className="text-3xl font-bold text-white">${pkg.price}</p>
-                      <p className="text-sm text-gray-400">One-time payment</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ${(pkg.price / (pkg.tokens + pkg.bonus)).toFixed(3)} per token
-                      </p>
+                    <div className="text-center mb-4">
+                      <div className="text-3xl font-bold text-white mb-2">
+                        {pkg.tokens.toLocaleString()}
+                      </div>
+                      <div className="text-gray-300">Tokens</div>
+                      {pkg.bonus > 0 && (
+                        <div className="text-sm text-green-400 mt-1">
+                          +{pkg.bonus} Bonus
+                        </div>
+                      )}
                     </div>
-                    
+
+                    <div className="text-center mb-4">
+                      <div className="text-2xl font-bold text-white">${pkg.price}</div>
+                      <div className="text-sm text-gray-400">
+                        ${(pkg.price / (pkg.tokens + pkg.bonus)).toFixed(3)} per token
+                      </div>
+                    </div>
+
                     <button
                       onClick={() => handlePurchaseTokens(pkg)}
-                      disabled={loading}
-                      className={`w-full px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-                        pkg.popular
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      aria-label={`Purchase ${pkg.tokens} tokens for $${pkg.price}`}
                     >
-                      {loading ? 'Processing...' : 'Purchase'}
+                      Purchase
                     </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-            
-            <div className="bg-gray-800/30 rounded-lg p-4">
-              <h4 className="text-white font-medium mb-2">💡 Token Pricing</h4>
-              <p className="text-gray-400 text-sm">
-                Our token pricing is designed to be fair and accessible. Each scan costs 100 tokens, 
-                and we offer bonus tokens on larger packages to give you better value.
-              </p>
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Subscription Tab */}
-        {activeTab === 'subscription' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-4">Choose Your Plan</h3>
-              <p className="text-gray-400 mb-6">Get more tokens and features with our subscription plans</p>
-            </div>
+          {activeTab === 'subscription' && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-white mb-2">Subscription Plans</h3>
+                <p className="text-gray-300">Choose a plan that works best for your usage</p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {plans.map((plan, index) => (
-                <div
-                  key={index}
-                  className={`relative bg-gray-800/50 border rounded-xl p-6 ${
-                    plan.popular 
-                      ? 'border-purple-600/50 bg-purple-600/10' 
-                      : 'border-gray-700 hover:border-blue-600/50'
-                  } transition-colors`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                        Most Popular
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {plans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className={`relative bg-gray-800/50 rounded-lg p-6 border transition-all duration-200 hover:border-blue-500/50 ${
+                      plan.popular ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-700/50'
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+                          Most Popular
+                        </span>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center gap-2">
-                      {plan.popular ? (
-                        <Crown className="w-6 h-6 text-purple-400" />
-                      ) : (
-                        <Star className="w-6 h-6 text-blue-400" />
-                      )}
-                      <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                    </div>
-                    
-                    <div>
-                      <p className="text-4xl font-bold text-white">${plan.price}</p>
-                      <p className="text-sm text-gray-400">per month</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Coins className="w-4 h-4 text-blue-400" />
-                        <span className="text-white">{plan.tokens} tokens/month</span>
+                    <div className="text-center mb-6">
+                      <h4 className="text-xl font-semibold text-white mb-2">{plan.name}</h4>
+                      <div className="text-3xl font-bold text-white mb-1">
+                        ${plan.price}
+                        <span className="text-sm text-gray-400 font-normal">/month</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-yellow-400" />
-                        <span className="text-white">{plan.scans} scans included</span>
-                      </div>
+                      <div className="text-gray-300">{plan.tokens} tokens included</div>
                     </div>
-                    
-                    <div className="space-y-2 text-left">
-                      {plan.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center gap-2">
-                          <Check className="w-4 h-4 text-green-400" />
-                          <span className="text-sm text-gray-300">{feature}</span>
-                        </div>
+
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-center gap-3">
+                          <Check className="w-4 h-4 text-green-400 flex-shrink-0" aria-hidden="true" />
+                          <span className="text-gray-300 text-sm">{feature}</span>
+                        </li>
                       ))}
-                    </div>
-                    
+                    </ul>
+
                     <button
                       onClick={() => handleSubscribe(plan)}
                       disabled={loading}
-                      className={`w-full px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
-                        plan.popular
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+                      aria-label={`Subscribe to ${plan.name} plan for $${plan.price} per month`}
                     >
-                      {loading ? 'Processing...' : plan.price === 0 ? 'Get Started' : 'Subscribe'}
+                      {loading ? 'Processing...' : 'Subscribe'}
                     </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Usage History Tab */}
-        {activeTab === 'usage' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-4">Usage History</h3>
-              <p className="text-gray-400 mb-6">Track your token usage and scanning activity</p>
-            </div>
+          {activeTab === 'usage' && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-white mb-2">Usage History</h3>
+                <p className="text-gray-300">Track your token usage over time</p>
+              </div>
 
-            <div className="bg-gray-800/50 rounded-xl overflow-hidden">
-              <div className="p-6">
+              <div className="bg-gray-800/50 rounded-lg p-6">
                 <div className="space-y-4">
-                  {usageHistory.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-400">No usage history yet</p>
-                      <p className="text-sm text-gray-500">Start scanning contracts to see your activity</p>
-                    </div>
-                  ) : (
-                    usageHistory.map((item, index) => (
+                  {usageHistory.length > 0 ? (
+                    usageHistory.map((entry, index) => (
                       <div key={index} className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <Zap className="w-5 h-5 text-blue-400" />
+                          <div className="p-2 bg-blue-600/20 rounded-lg">
+                            <Zap className="w-4 h-4 text-blue-400" aria-hidden="true" />
+                          </div>
                           <div>
-                            <p className="text-white font-medium">{item.action}</p>
-                            <p className="text-sm text-gray-400">{item.date}</p>
+                            <div className="text-white font-medium">{entry.action}</div>
+                            <div className="text-sm text-gray-400">{entry.timestamp}</div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-white font-medium">-{item.tokens} tokens</p>
-                          <p className="text-sm text-gray-400">{item.contract}</p>
+                          <div className="text-white font-medium">-{entry.tokens} tokens</div>
+                          <div className="text-sm text-gray-400">Remaining: {entry.remaining}</div>
                         </div>
                       </div>
                     ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Clock className="w-12 h-12 text-gray-500 mx-auto mb-4" aria-hidden="true" />
+                      <p className="text-gray-400">No usage history yet</p>
+                      <p className="text-sm text-gray-500">Your token usage will appear here</p>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Stripe Payment Modal */}
+        {showStripePayment && selectedPackage && (
+          <StripePayment
+            package={selectedPackage}
+            onSuccess={handlePaymentSuccess}
+            onCancel={handlePaymentCancel}
+          />
         )}
       </div>
-
-      {showStripePayment && selectedPackage && (
-        <StripePayment
-          amount={selectedPackage.price}
-          description={`Purchase ${selectedPackage.tokens + selectedPackage.bonus} tokens`}
-          onSuccess={() => handlePaymentSuccess(selectedPackage.tokens + selectedPackage.bonus)}
-          onCancel={handlePaymentCancel}
-        />
-      )}
     </div>
-  );
-};
+  )
+}
 
 export default TokenSystem; 

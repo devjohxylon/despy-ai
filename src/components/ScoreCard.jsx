@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Info } from 'lucide-react'
 
@@ -24,95 +24,64 @@ const getRiskDescription = (score) => {
 
 export default function ScoreCard({ score }) {
   const [count, setCount] = useState(0)
-  const { level, color, bg } = getRiskLevel(score)
-  const description = getRiskDescription(score)
+  const { level, color, bg } = useMemo(() => getRiskLevel(score), [score])
+  const description = useMemo(() => getRiskDescription(score), [score])
 
-  useEffect(() => {
+  const animateScore = useCallback(() => {
     const duration = 1500 // Animation duration in ms
     const steps = 60 // Number of steps
     const increment = score / steps
     let currentStep = 0
+    let timer = null
 
-    const timer = setInterval(() => {
+    const animate = () => {
       if (currentStep < steps) {
         setCount(prev => Math.min(score, prev + increment))
         currentStep++
+        timer = setTimeout(animate, duration / steps)
       } else {
         setCount(score)
-        clearInterval(timer)
       }
-    }, duration / steps)
+    }
 
-    return () => clearInterval(timer)
+    animate()
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer)
+      }
+    }
   }, [score])
 
+  useEffect(() => {
+    const cleanup = animateScore()
+    return cleanup
+  }, [animateScore])
+
   return (
-    <div className="glass-panel p-6">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-gray-400 text-xl font-light">Risk Analysis Score</h2>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="text-gray-400 hover:text-sky-400 transition-colors"
-          title="About Risk Score"
-        >
-          <Info size={18} />
-        </motion.button>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`glass-panel p-6 ${bg}`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-white">Risk Score</h3>
+        <Info className="w-5 h-5 text-gray-400" />
       </div>
-
-      <div className="flex flex-col items-center mb-8">
-        <div className="relative mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className={`w-36 h-36 rounded-full ${bg} flex items-center justify-center`}
-          >
-            <div className={`text-5xl font-bold ${color}`}>
-              {Math.round(count)}
-            </div>
-          </motion.div>
-          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-sm text-gray-400 whitespace-nowrap">
-            out of 100
-          </div>
+      
+      <div className="text-center mb-4">
+        <div className="text-4xl font-bold text-white mb-2">
+          {Math.round(count)}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`text-xl font-medium ${color} text-center mb-4`}
-        >
+        <div className={`text-sm font-medium ${color}`}>
           {level}
-        </motion.div>
-      </div>
-
-      <div className="space-y-6">
-        <div className="text-gray-400 text-sm leading-relaxed bg-gray-900/30 rounded-lg p-4">
-          {description}
-        </div>
-
-        <div className="space-y-3">
-          <h3 className="text-gray-400 font-medium">Risk Breakdown:</h3>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-400"></span>
-              <span className="text-gray-400">75-100: Critical</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span className="text-gray-400">50-74: High</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
-              <span className="text-gray-400">25-49: Medium</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span className="text-gray-400">0-24: Low</span>
-            </div>
-          </div>
         </div>
       </div>
-    </div>
+      
+      <p className="text-gray-300 text-sm leading-relaxed">
+        {description}
+      </p>
+    </motion.div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OptimizedImage({
@@ -12,26 +12,39 @@ export default function OptimizedImage({
 }) {
   const [isLoading, setIsLoading] = useState(!priority);
   const [error, setError] = useState(false);
-  const [blurDataURL, setBlurDataURL] = useState('');
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Generate a simple placeholder instead of heavy canvas blur
+  const placeholderUrl = useMemo(() => {
+    if (placeholder === 'blur') {
+      // Create a simple gradient placeholder
+      const canvas = document.createElement('canvas');
+      canvas.width = 40;
+      canvas.height = 40;
+      const ctx = canvas.getContext('2d');
+      
+      // Create a subtle gradient
+      const gradient = ctx.createLinearGradient(0, 0, 40, 40);
+      gradient.addColorStop(0, '#374151');
+      gradient.addColorStop(1, '#4b5563');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 40, 40);
+      
+      return canvas.toDataURL();
+    }
+    return null;
+  }, [placeholder]);
 
   useEffect(() => {
-    if (!priority && placeholder === 'blur') {
-      // Generate tiny placeholder
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 40;
-        canvas.height = 40;
-        ctx.drawImage(img, 0, 0, 40, 40);
-        setBlurDataURL(canvas.toDataURL());
-      };
+    if (priority) {
+      setIsLoading(false);
     }
-  }, [src, priority, placeholder]);
+  }, [priority]);
 
   const handleLoad = () => {
     setIsLoading(false);
+    setImageLoaded(true);
   };
 
   const handleError = () => {
@@ -44,6 +57,8 @@ export default function OptimizedImage({
       <div 
         className={`bg-gray-900 flex items-center justify-center ${className}`}
         style={{ width, height }}
+        role="img"
+        aria-label={`Failed to load image: ${alt}`}
       >
         <span className="text-gray-500 text-sm">Failed to load image</span>
       </div>
@@ -53,15 +68,16 @@ export default function OptimizedImage({
   return (
     <div className={`relative ${className}`} style={{ width, height }}>
       <AnimatePresence>
-        {isLoading && placeholder === 'blur' && blurDataURL && (
+        {isLoading && placeholder === 'blur' && placeholderUrl && (
           <motion.img
-            src={blurDataURL}
-            alt={alt}
+            src={placeholderUrl}
+            alt=""
             className="absolute inset-0 w-full h-full object-cover filter blur-lg"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={{ width, height }}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
@@ -74,7 +90,9 @@ export default function OptimizedImage({
         loading={priority ? 'eager' : 'lazy'}
         onLoad={handleLoad}
         onError={handleError}
-        className={`w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
+        }`}
         initial={{ opacity: 0 }}
         animate={{ opacity: isLoading ? 0 : 1 }}
         transition={{ duration: 0.2 }}
@@ -87,6 +105,7 @@ export default function OptimizedImage({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>

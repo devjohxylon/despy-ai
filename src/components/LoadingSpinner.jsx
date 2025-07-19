@@ -1,17 +1,31 @@
-import { motion } from 'framer-motion';
+import React from 'react';
 
-export default function LoadingSpinner() {
+export default function LoadingSpinner({ 
+  size = 'md', 
+  message = 'Loading...', 
+  className = '' 
+}) {
+  const sizeClasses = {
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+    xl: 'h-16 w-16'
+  };
+
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-gray-50 flex items-center justify-center">
-      <motion.div
-        className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full"
-        animate={{ rotate: 360 }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          ease: "linear"
-        }}
+    <div 
+      className={`flex items-center justify-center ${className}`}
+      role="status"
+      aria-live="polite"
+      aria-label={message}
+    >
+      <div 
+        className={`animate-spin rounded-full border-b-2 border-blue-500 ${sizeClasses[size]}`}
+        aria-hidden="true"
       />
+      {message && (
+        <span className="ml-3 text-gray-300">{message}</span>
+      )}
     </div>
   );
 } 
