@@ -10,6 +10,7 @@ import AlertsFeed from './AlertsFeed'
 import PredictionForm from './PredictionForm'
 import Topbar from './Topbar'
 import TokenDisplay from './TokenDisplay'
+import AuthDebug from './AuthDebug'
 
 // Animation variants
 const containerVariants = {
@@ -350,6 +351,7 @@ export default function DashboardPage() {
           {dashboardContent}
         </motion.div>
       </main>
+      <AuthDebug />
     </div>
   )
 }
