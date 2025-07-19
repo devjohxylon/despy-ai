@@ -1,65 +1,130 @@
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 
-export default function RiskRadarChart({ data }) {
-  // Transform data into the format Recharts expects
-  const chartData = [
-    { name: 'Liquidity Risk', value: data?.liquidity || 0 },
-    { name: 'Volatility', value: data?.volatility || 0 },
-    { name: 'Concentration', value: data?.concentration || 0 },
-    { name: 'Manipulation', value: data?.manipulation || 0 },
-    { name: 'Smart Contract', value: data?.smartContract || 0 }
+const RiskRadarChart = memo(({ data = [] }) => {
+  // Default risk categories for ETH and SOL
+  const riskCategories = [
+    'Liquidity Risk',
+    'Concentration',
+    'Smart Contract',
+    'Volatility',
+    'Manipulation',
+    'Regulatory'
   ]
 
-  return (
-    <div className="glass-panel p-6">
-      <h2 className="text-gray-400 text-xl font-light mb-4">Risk Analysis</h2>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative"
-      >
-        <ResponsiveContainer width="100%" height={300}>
-          <RadarChart data={chartData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
-            <PolarGrid stroke="rgba(148, 163, 184, 0.2)" />
-            <PolarAngleAxis 
-              dataKey="name" 
-              tick={{ fill: 'rgb(148, 163, 184)', fontSize: 12 }}
-              stroke="rgba(148, 163, 184, 0.2)"
-            />
-            <Radar
-              name="Risk Level"
-              dataKey="value"
-              stroke="rgba(56, 189, 248, 0.8)"
-              fill="rgba(56, 189, 248, 0.4)"
-              fillOpacity={0.6}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                border: '1px solid rgba(56, 189, 248, 0.2)',
-                borderRadius: '8px',
-                padding: '12px'
-              }}
-              itemStyle={{ color: 'rgb(226, 232, 240)' }}
-              labelStyle={{ color: 'rgb(148, 163, 184)' }}
-              formatter={(value) => [`${value.toFixed(1)}%`, 'Risk Level']}
-            />
-          </RadarChart>
-        </ResponsiveContainer>
+  // Use provided data or default to zeros
+  const riskValues = data.length > 0 ? data : riskCategories.map(() => 0)
 
-        {/* Risk Level Legend */}
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          {chartData.map((item) => (
-            <div key={item.name} className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-sky-400"></div>
-              <span className="text-gray-400">{item.name}:</span>
-              <span className="text-sky-400 font-medium">{item.value.toFixed(1)}%</span>
-            </div>
+  const maxValue = Math.max(...riskValues, 1) // Prevent division by zero
+  const radius = 60
+  const centerX = 120
+  const centerY = 120
+
+  // Generate polygon points
+  const generatePolygonPoints = (values, radius, centerX, centerY) => {
+    return values.map((value, index) => {
+      const angle = (index * 2 * Math.PI) / values.length - Math.PI / 2
+      const r = (value / maxValue) * radius
+      const x = centerX + r * Math.cos(angle)
+      const y = centerY + r * Math.sin(angle)
+      return `${x},${y}`
+    }).join(' ')
+  }
+
+  const polygonPoints = generatePolygonPoints(riskValues, radius, centerX, centerY)
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Radar Chart */}
+      <div className="relative mb-6">
+        <svg width="240" height="240" className="transform -rotate-90">
+          {/* Background grid */}
+          {[0.2, 0.4, 0.6, 0.8, 1.0].map((level, index) => (
+            <g key={index}>
+              {/* Circular grid lines */}
+              <circle
+                cx={centerX}
+                cy={centerY}
+                r={radius * level}
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.1)"
+                strokeWidth="1"
+              />
+              
+              {/* Radial grid lines */}
+              {riskCategories.map((_, categoryIndex) => {
+                const angle = (categoryIndex * 2 * Math.PI) / riskCategories.length
+                const x = centerX + radius * Math.cos(angle)
+                const y = centerY + radius * Math.sin(angle)
+                return (
+                  <line
+                    key={categoryIndex}
+                    x1={centerX}
+                    y1={centerY}
+                    x2={x}
+                    y2={y}
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    strokeWidth="1"
+                  />
+                )
+              })}
+            </g>
           ))}
+
+          {/* Risk area polygon */}
+          <motion.polygon
+            points={polygonPoints}
+            fill="rgba(59, 130, 246, 0.2)"
+            stroke="rgba(59, 130, 246, 0.8)"
+            strokeWidth="2"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          />
+
+          {/* Center point */}
+          <circle
+            cx={centerX}
+            cy={centerY}
+            r="3"
+            fill="rgba(59, 130, 246, 1)"
+          />
+        </svg>
+      </div>
+
+      {/* Risk Categories Legend */}
+      <div className="grid grid-cols-2 gap-3 w-full">
+        {riskCategories.map((category, index) => (
+          <div key={category} className="flex items-center justify-between text-sm">
+            <span className="text-gray-400">{category}</span>
+            <span className="text-white font-medium">
+              {riskValues[index] ? `${riskValues[index].toFixed(1)}%` : '0.0%'}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary */}
+      {riskValues.some(v => v > 0) ? (
+        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <p className="text-blue-400 text-sm text-center">
+            {riskValues.filter(v => v > 50).length > 0 
+              ? `${riskValues.filter(v => v > 50).length} high-risk factors detected`
+              : 'All risk factors within normal range'
+            }
+          </p>
         </div>
-      </motion.div>
+      ) : (
+        <div className="mt-4 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+          <p className="text-gray-400 text-sm text-center">
+            No risk data available
+          </p>
+        </div>
+      )}
     </div>
   )
-}
+})
+
+RiskRadarChart.displayName = 'RiskRadarChart'
+
+export default RiskRadarChart

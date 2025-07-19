@@ -18,6 +18,7 @@ import { toast } from 'react-hot-toast';
 import getApiUrl, { getApiUrlWithCacheBust } from '../utils/api';
 import { secureTokenStorage } from '../utils/security';
 import StripePayment from './StripePayment';
+import StripeSubscription from './StripeSubscription';
 
 const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -26,7 +27,9 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   const [usageHistory, setUsageHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showStripePayment, setShowStripePayment] = useState(false);
+  const [showStripeSubscription, setShowStripeSubscription] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const plans = useMemo(() => [
     {
@@ -36,7 +39,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
       tokens: 100,
       scans: 1,
       features: ['Basic scanning', 'Email support', 'Standard analysis', '1 scan per month'],
-      popular: false
+      popular: false,
+      stripePriceId: null // Free plan
     },
     {
       id: 'pro',
@@ -45,7 +49,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
       tokens: 500,
       scans: 5,
       features: ['Advanced scanning', 'Priority support', 'Detailed reports', '5 scans per month', 'API access'],
-      popular: true
+      popular: true,
+      stripePriceId: 'price_1OqX8X2eZvKYlo2C9qX8X2eZ' // Replace with your actual Stripe price ID
     },
     {
       id: 'enterprise',
@@ -54,7 +59,8 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
       tokens: 2000,
       scans: 20,
       features: ['Unlimited scanning', '24/7 support', 'Custom reports', '20 scans per month', 'Dedicated account manager'],
-      popular: false
+      popular: false,
+      stripePriceId: 'price_1OqX8X2eZvKYlo2C9qX8X2eZ' // Replace with your actual Stripe price ID
     }
   ], []);
 
@@ -98,26 +104,50 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
   };
 
   const handleSubscribe = async (plan) => {
-    setLoading(true);
-    try {
-      // Simulate subscription processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setSubscription(plan);
-      const newTokens = userTokens + plan.tokens;
-      setUserTokens(newTokens);
-      
-      toast.success(`Successfully subscribed to ${plan.name}!`);
-      
-      // Update parent component
-      if (onTokenUpdate) {
-        onTokenUpdate(newTokens);
+    if (plan.price === 0) {
+      // Handle free plan
+      setLoading(true);
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setSubscription(plan);
+        const newTokens = userTokens + plan.tokens;
+        setUserTokens(newTokens);
+        
+        toast.success(`Successfully subscribed to ${plan.name}!`);
+        
+        if (onTokenUpdate) {
+          onTokenUpdate(newTokens);
+        }
+      } catch (error) {
+        toast.error('Subscription failed. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      toast.error('Subscription failed. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      // Handle paid plan with Stripe
+      setSelectedPlan(plan);
+      setShowStripeSubscription(true);
     }
+  };
+
+  const handleSubscriptionSuccess = (plan) => {
+    setSubscription(plan);
+    const newTokens = userTokens + plan.tokens;
+    setUserTokens(newTokens);
+    setShowStripeSubscription(false);
+    setSelectedPlan(null);
+    
+    toast.success(`Successfully subscribed to ${plan.name}!`);
+    
+    if (onTokenUpdate) {
+      onTokenUpdate(newTokens);
+    }
+  };
+
+  const handleSubscriptionCancel = () => {
+    setShowStripeSubscription(false);
+    setSelectedPlan(null);
   };
 
   if (!isOpen) return null;
@@ -171,6 +201,21 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
             </div>
           </div>
         </div>
+
+        {/* Current Subscription Status */}
+        {subscription && (
+          <div className="bg-green-600/10 border border-green-600/20 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Crown className="w-6 h-6 text-green-400" />
+              <div>
+                <h4 className="text-green-400 font-medium">Active Subscription: {subscription.name}</h4>
+                <p className="text-gray-300 text-sm">
+                  {subscription.tokens.toLocaleString()} tokens included • {subscription.scans} scans per month
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-gray-800/50 rounded-lg p-1" role="tablist" aria-label="Token management tabs">
@@ -374,7 +419,7 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
                       className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
                       aria-label={`Subscribe to ${plan.name} plan for $${plan.price} per month`}
                     >
-                      {loading ? 'Processing...' : 'Subscribe'}
+                      {loading ? 'Processing...' : plan.price === 0 ? 'Get Free Plan' : 'Subscribe'}
                     </button>
                   </div>
                 ))}
@@ -429,6 +474,28 @@ const TokenSystem = ({ isOpen, onClose, onTokenUpdate }) => {
             onSuccess={handlePaymentSuccess}
             onCancel={handlePaymentCancel}
           />
+        )}
+
+        {/* Stripe Subscription Modal */}
+        {showStripeSubscription && selectedPlan && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-xl p-6 w-full max-w-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Subscribe to {selectedPlan.name}</h3>
+                <button
+                  onClick={handleSubscriptionCancel}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+              <StripeSubscription
+                plan={selectedPlan}
+                onSuccess={handleSubscriptionSuccess}
+                onCancel={handleSubscriptionCancel}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>

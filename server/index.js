@@ -4,9 +4,13 @@ const { Database } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const Stripe = require('stripe');
 
 const app = express();
 const port = process.env.PORT || 5174;
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Initialize database
 const db = new Database({
@@ -440,6 +444,140 @@ app.get('/api/admin/waitlist/export', authenticateAdmin, async (req, res) => {
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
+// Subscription endpoints
+app.post('/api/subscription/create', async (req, res) => {
+  try {
+    const { planId, customerEmail } = req.body;
+
+    if (!planId || !customerEmail) {
+      return res.status(400).json({ error: 'Plan ID and customer email are required' });
+    }
+
+    // Create or get customer
+    let customer;
+    const existingCustomers = await stripe.customers.list({
+      email: customerEmail,
+      limit: 1
+    });
+
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email: customerEmail,
+        metadata: {
+          source: 'despy-ai'
+        }
+      });
+    }
+
+    // Create subscription
+    const subscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: planId }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      expand: ['latest_invoice.payment_intent'],
+      metadata: {
+        customer_email: customerEmail
+      }
+    });
+
+    res.json({
+      subscriptionId: subscription.id,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret,
+      customerId: customer.id
+    });
+  } catch (error) {
+    console.error('Subscription creation error:', error);
+    res.status(500).json({ error: 'Failed to create subscription' });
+  }
+});
+
+app.post('/api/subscription/cancel', async (req, res) => {
+  try {
+    const { subscriptionId } = req.body;
+
+    if (!subscriptionId) {
+      return res.status(400).json({ error: 'Subscription ID is required' });
+    }
+
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true
+    });
+
+    res.json({ success: true, subscription });
+  } catch (error) {
+    console.error('Subscription cancellation error:', error);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
+app.get('/api/subscription/:subscriptionId', async (req, res) => {
+  try {
+    const { subscriptionId } = req.params;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    res.json(subscription);
+  } catch (error) {
+    console.error('Subscription retrieval error:', error);
+    res.status(500).json({ error: 'Failed to retrieve subscription' });
+  }
+});
+
+app.post('/api/subscription/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    switch (event.type) {
+      case 'customer.subscription.created':
+        const subscription = event.data.object;
+        console.log('Subscription created:', subscription.id);
+        // Handle subscription creation
+        break;
+      
+      case 'customer.subscription.updated':
+        const updatedSubscription = event.data.object;
+        console.log('Subscription updated:', updatedSubscription.id);
+        // Handle subscription updates
+        break;
+      
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object;
+        console.log('Subscription deleted:', deletedSubscription.id);
+        // Handle subscription deletion
+        break;
+      
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object;
+        console.log('Payment succeeded for invoice:', invoice.id);
+        // Handle successful payment
+        break;
+      
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object;
+        console.log('Payment failed for invoice:', failedInvoice.id);
+        // Handle failed payment
+        break;
+      
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 

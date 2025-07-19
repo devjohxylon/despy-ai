@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Info } from 'lucide-react'
+import { Info, Shield, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const getRiskLevel = (score) => {
-  if (score >= 75) return { level: 'Critical Risk', color: 'text-red-400', bg: 'bg-red-950/30' }
-  if (score >= 50) return { level: 'High Risk', color: 'text-amber-400', bg: 'bg-amber-950/30' }
-  if (score >= 25) return { level: 'Medium Risk', color: 'text-yellow-400', bg: 'bg-yellow-950/30' }
-  return { level: 'Low Risk', color: 'text-emerald-400', bg: 'bg-emerald-950/30' }
+  if (score >= 75) return { level: 'Critical Risk', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: AlertTriangle }
+  if (score >= 50) return { level: 'High Risk', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: AlertTriangle }
+  if (score >= 25) return { level: 'Medium Risk', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', icon: Shield }
+  return { level: 'Low Risk', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle }
 }
 
 const getRiskDescription = (score) => {
@@ -24,7 +24,7 @@ const getRiskDescription = (score) => {
 
 export default function ScoreCard({ score }) {
   const [count, setCount] = useState(0)
-  const { level, color, bg } = useMemo(() => getRiskLevel(score), [score])
+  const { level, color, bg, border, icon: Icon } = useMemo(() => getRiskLevel(score), [score])
   const description = useMemo(() => getRiskDescription(score), [score])
 
   const animateScore = useCallback(() => {
@@ -59,15 +59,10 @@ export default function ScoreCard({ score }) {
   }, [animateScore])
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`glass-panel p-6 ${bg}`}
-    >
+    <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 ${bg} ${border}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-semibold text-white">Risk Score</h3>
-        <Info className="w-5 h-5 text-gray-400" />
+        <h3 className="text-lg font-semibold text-white">Risk Score</h3>
+        <Icon className="w-5 h-5 text-gray-400" />
       </div>
       
       <div className="text-center mb-4">
@@ -82,6 +77,6 @@ export default function ScoreCard({ score }) {
       <p className="text-gray-300 text-sm leading-relaxed">
         {description}
       </p>
-    </motion.div>
+    </div>
   )
 }

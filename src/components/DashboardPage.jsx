@@ -1,7 +1,7 @@
 // src/components/DashboardPage.jsx
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Coins } from 'lucide-react'
+import { Coins, TrendingUp, Users, Zap, Shield, Activity } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import ScoreCard from './ScoreCard'
 import RiskRadarChart from './RiskRadarChart'
@@ -10,6 +10,7 @@ import AlertsFeed from './AlertsFeed'
 import PredictionForm from './PredictionForm'
 import Topbar from './Topbar'
 import TokenDisplay from './TokenDisplay'
+import Leaderboard from './Leaderboard'
 
 // Simplified animation variants
 const containerVariants = {
@@ -29,249 +30,206 @@ const formVariants = {
 }
 
 // Optimized background - static instead of animated
-const StaticBackground = memo(() => (
-  <div className="fixed inset-0 pointer-events-none">
-    <div 
-      className="absolute inset-0"
-      style={{
-        background: 'radial-gradient(circle at 50% 50%, #1E40AF 0%, transparent 50%)',
-        filter: 'blur(60px)',
-        opacity: 0.05
-      }}
-    />
-    <div 
-      className="absolute inset-0"
-      style={{
-        background: 'radial-gradient(circle at 80% 20%, #3B82F6 0%, transparent 40%)',
-        filter: 'blur(50px)',
-        opacity: 0.03
-      }}
-    />
+const StaticBackground = () => (
+  <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="absolute inset-0 opacity-30" style={{
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+    }} />
   </div>
-))
+)
 
-// Simplified loading skeleton
-const LoadingSkeleton = memo(() => (
-  <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {[...Array(4)].map((_, i) => (
-      <div
-        key={i}
-        className="glass-panel"
-      >
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-800 rounded w-3/4"></div>
-          <div className="h-32 bg-gray-800/50 rounded"></div>
-        </div>
-      </div>
-    ))}
-    <div className="lg:col-span-3 glass-panel">
-      <div className="animate-pulse space-y-4">
-        <div className="h-4 bg-gray-800 rounded w-3/4"></div>
-        <div className="h-64 bg-gray-800/50 rounded"></div>
-      </div>
-    </div>
-  </div>
-))
-
-const VulnerabilityItem = memo(({ issue }) => (
-  <div
-    className={`p-4 rounded-lg ${
-      issue.type === 'critical' ? 'bg-red-950/20 border border-red-900/50' :
-      issue.type === 'high' ? 'bg-orange-950/20 border border-orange-900/50' :
-      issue.type === 'medium' ? 'bg-yellow-950/20 border border-yellow-900/50' :
-      'bg-blue-950/20 border border-blue-900/50'
-    }`}
-  >
-    <div className="flex items-start justify-between">
-      <div className="space-y-1">
-        <div className="font-medium text-gray-200">
-          Line {issue.line}: {issue.description}
-        </div>
-        <div className="text-sm text-gray-400">{issue.recommendation}</div>
-      </div>
-      <div className={`text-sm font-medium px-2 py-1 rounded ${
-        issue.type === 'critical' ? 'bg-red-500/20 text-red-400' :
-        issue.type === 'high' ? 'bg-orange-500/20 text-orange-400' :
-        issue.type === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-        'bg-blue-500/20 text-blue-400'
-      }`}>
-        {issue.type.toUpperCase()}
-      </div>
-    </div>
-  </div>
-))
-
-const AnalysisHeader = memo(({ data }) => (
-  <div className="col-span-full text-xl font-light text-gray-400">
-    {data.code ? (
-      <>Analyzing Smart Contract</>
-    ) : (
-      <>
-        Analyzing <span className="text-sky-400">{data.address || 'Contract'}</span> on{' '}
-        <span className="text-sky-400">{data.chain ? data.chain.charAt(0).toUpperCase() + data.chain.slice(1) : 'Blockchain'}</span>
-      </>
-    )}
-  </div>
-))
-
-const VulnerabilityAnalysis = memo(({ issues }) => (
-  <div className="lg:col-span-3">
-    <div className="glass-panel p-6">
-      <h2 className="text-gray-400 text-xl font-light mb-4">Vulnerability Analysis</h2>
-      <div className="space-y-4">
-        {issues.map((issue, index) => (
-          <VulnerabilityItem key={index} issue={issue} />
-        ))}
-      </div>
-    </div>
-  </div>
-))
-
-export default function DashboardPage() {
+export default memo(function DashboardPage() {
   const { data, loading } = useData()
-  const resultsRef = useRef(null)
   const [userTokens, setUserTokens] = useState(500)
+  const [showTokenSystem, setShowTokenSystem] = useState(false)
+  const resultsRef = useRef(null)
 
+  // Memoized dashboard content to prevent unnecessary re-renders
   const dashboardContent = useMemo(() => {
-    if (loading) return <LoadingSkeleton />
-    if (!data) return null
-
-    // Check if user has enough tokens for scanning
-    const hasEnoughTokens = userTokens >= 100;
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        </div>
+      )
+    }
 
     return (
-      <div className="relative z-10 space-y-6">
+      <div className="space-y-6">
+        {/* Header Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Total Scans</p>
+                <p className="text-2xl font-bold text-white">1,247</p>
+              </div>
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Zap className="w-6 h-6 text-blue-400" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Active Users</p>
+                <p className="text-2xl font-bold text-white">892</p>
+              </div>
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Users className="w-6 h-6 text-green-400" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Risk Detected</p>
+                <p className="text-2xl font-bold text-white">23</p>
+              </div>
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <Shield className="w-6 h-6 text-red-400" />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-sm">Success Rate</p>
+                <p className="text-2xl font-bold text-white">98.2%</p>
+              </div>
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <AnalysisHeader data={data} />
+          {/* Left Column - Analysis */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Risk Score and Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ScoreCard score={data.score || 0} />
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Risk Analysis</h3>
+                <RiskRadarChart data={data.risks || []} />
+              </div>
+            </div>
 
-          <div className="lg:col-span-1">
-            <ScoreCard score={data.score} />
-            {!hasEnoughTokens && (
-              <div className="mt-4 p-4 bg-orange-600/20 border border-orange-600/30 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-orange-400" />
-                  <span className="text-orange-400 font-medium">
-                    Insufficient tokens for scanning. You need 100 tokens per scan.
-                  </span>
+            {/* Activity Timeline */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Activity Timeline</h3>
+              <ActivityTimeline events={data.timeline || []} />
+            </div>
+
+            {/* AI Wallet Analysis */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">AI Wallet Analysis</h3>
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <h4 className="text-blue-400 font-medium mb-2">Wallet Type & Behavior</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    This is a <strong>{data.walletProfile?.name || 'Unknown'}</strong> wallet with {data.transactions?.length || 0} transactions. 
+                    {data.walletProfile?.description && ` ${data.walletProfile.description}.`} The wallet shows patterns consistent with 
+                    {data.walletProfile?.transactionPattern === 'frequent_large' ? ' high-volume DeFi trading' : 
+                     data.walletProfile?.transactionPattern === 'high_frequency' ? ' sophisticated arbitrage bot activity' :
+                     data.walletProfile?.transactionPattern === 'nft_focused' ? ' active NFT trading and collection' :
+                     ' normal crypto user behavior'}, 
+                    including {data.walletProfile?.protocols?.length || 0} different protocol interactions.
+                  </p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-2">
-            <RiskRadarChart data={data.risks} />
-          </div>
-
-          <div className="lg:col-span-2">
-            <ActivityTimeline events={data.timeline} />
-          </div>
-
-          <div className="lg:col-span-1">
-            <AlertsFeed alerts={data.alerts} />
-          </div>
-
-          {/* AI Wallet Analysis */}
-          <div className="glass-panel p-6">
-            <h2 className="text-gray-400 text-xl font-light mb-4">AI Wallet Analysis</h2>
-            <div className="space-y-4">
-              <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-lg p-4 border border-blue-500/20">
-                <h3 className="text-blue-400 font-medium mb-2">Wallet Type & Behavior</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  This is a <strong>{data.walletProfile?.name || 'Unknown'}</strong> wallet with {data.transactions?.length || 0} transactions. 
-                  {data.walletProfile?.description && ` ${data.walletProfile.description}.`} The wallet shows patterns consistent with 
-                  {data.walletProfile?.transactionPattern === 'frequent_large' ? ' high-volume DeFi trading' : 
-                   data.walletProfile?.transactionPattern === 'high_frequency' ? ' sophisticated arbitrage bot activity' :
-                   data.walletProfile?.transactionPattern === 'nft_focused' ? ' active NFT trading and collection' :
-                   ' normal crypto user behavior'}, 
-                  including {data.walletProfile?.protocols?.length || 0} different protocol interactions.
-                </p>
-              </div>
-              
-              <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-lg p-4 border border-green-500/20">
-                <h3 className="text-green-400 font-medium mb-2">Risk Assessment</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  Based on our AI analysis, this wallet has a risk score of {data.score || 0}/100. 
-                  {data.walletProfile?.riskLevel === 'high' ? 'High risk indicators detected include sophisticated trading patterns and large transaction volumes.' : 
-                   data.walletProfile?.riskLevel === 'medium' ? 'Moderate risk factors present, including some unusual activity patterns and bot-like behavior.' : 
-                   'Low risk profile with normal transaction patterns and standard wallet behavior.'}
-                  The wallet has interacted with {data.walletProfile?.protocols?.join(', ') || 'multiple protocols'}.
-                </p>
-              </div>
-              
-              <div className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg p-4 border border-purple-500/20">
-                <h3 className="text-purple-400 font-medium mb-2">AI Insights</h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  Our AI has identified {data.alerts?.length || 0} potential risk factors and analyzed 
-                  {data.transactions?.length || 0} transactions for patterns. The wallet's behavior suggests 
-                  {data.walletProfile?.riskLevel === 'high' ? ' potential involvement in sophisticated trading strategies' : 
-                   data.walletProfile?.riskLevel === 'medium' ? ' some automated trading patterns that warrant monitoring' : 
-                   ' normal trading and investment behavior'}. 
-                  Average transaction value: {data.analytics?.averageTransactionValue || '0'} {data.chain === 'ethereum' ? 'ETH' : 'SOL'}.
-                </p>
+                
+                <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg p-4">
+                  <h4 className="text-green-400 font-medium mb-2">Risk Assessment</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Based on our AI analysis, this wallet has a risk score of {data.score || 0}/100. 
+                    {data.walletProfile?.riskLevel === 'high' ? 'High risk indicators detected include sophisticated trading patterns and large transaction volumes.' : 
+                     data.walletProfile?.riskLevel === 'medium' ? 'Moderate risk factors present, including some unusual activity patterns and bot-like behavior.' : 
+                     'Low risk profile with normal transaction patterns and standard wallet behavior.'}
+                    The wallet has interacted with {data.walletProfile?.protocols?.join(', ') || 'multiple protocols'}.
+                  </p>
+                </div>
+                
+                <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg p-4">
+                  <h4 className="text-purple-400 font-medium mb-2">AI Insights</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                    Our AI has identified {data.alerts?.length || 0} potential risk factors and analyzed 
+                    {data.transactions?.length || 0} transactions for patterns. The wallet's behavior suggests 
+                    {data.walletProfile?.riskLevel === 'high' ? ' potential involvement in sophisticated trading strategies' : 
+                     data.walletProfile?.riskLevel === 'medium' ? ' some automated trading patterns that warrant monitoring' : 
+                     ' normal trading and investment behavior'}. 
+                    Average transaction value: {data.analytics?.averageTransactionValue || '0'} {data.chain === 'ethereum' ? 'ETH' : 'SOL'}.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {data.code && data.issues && <VulnerabilityAnalysis issues={data.issues} />}
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Token Display */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <TokenDisplay 
+                tokens={userTokens} 
+                onTokenUpdate={setUserTokens}
+                onOpenTokenSystem={() => setShowTokenSystem(true)}
+              />
+            </div>
+
+            {/* Recent Alerts */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-white mb-4">Recent Alerts</h3>
+              <AlertsFeed alerts={data.alerts || []} />
+            </div>
+
+            {/* Leaderboard */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+              <h3 className="text-lg font-semibold text-white mb-4">Top Scanners</h3>
+              <Leaderboard />
+            </div>
+          </div>
+        </div>
+
+        {/* Analysis Form */}
+        <div ref={resultsRef}>
+          <PredictionForm resultsRef={resultsRef} />
         </div>
       </div>
     )
   }, [data, loading, userTokens])
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-gray-50 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 text-gray-50 relative overflow-hidden">
       <StaticBackground />
-      <Topbar />
       
-      {/* BETA Indicator */}
-      <div className="fixed top-24 right-8 z-40">
-        <div className="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-          BETA
-        </div>
-      </div>
-
-      <main className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Prominent Token Display */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-8"
-        >
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-600/30 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-blue-600/20 rounded-xl">
-                  <Coins className="w-8 h-8 text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Token Balance</h2>
-                  <p className="text-gray-400">Manage your scanning credits</p>
-                </div>
-              </div>
-              <TokenDisplay onTokenUpdate={setUserTokens} />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          key="dashboard"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="space-y-6"
-          ref={resultsRef}
-        >
+      <div className="relative z-10">
+        <Topbar />
+        
+        <main className="container mx-auto px-4 py-8">
           <motion.div
-            variants={formVariants}
-            className="relative z-10"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-8"
           >
-            <PredictionForm resultsRef={resultsRef} />
-          </motion.div>
+            {/* Page Header */}
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-white mb-2">
+                DeSpy AI Dashboard
+              </h1>
+              <p className="text-gray-400 text-lg">
+                Advanced blockchain analysis for Ethereum & Solana
+              </p>
+            </div>
 
-          {dashboardContent}
-        </motion.div>
-      </main>
+            {dashboardContent}
+          </motion.div>
+        </main>
+      </div>
     </div>
   )
-}
+})
