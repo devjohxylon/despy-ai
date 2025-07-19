@@ -25,26 +25,26 @@ export default function Topbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-xl border-b border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 topbar-glass">
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center py-4">
           {/* Desktop Navigation */}
-          <nav className="flex items-center space-x-6">
-            <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
+          <nav className="flex items-center space-x-8">
+            <Link to="/dashboard" className="text-gray-200 hover:text-white transition-colors font-medium">
               Dashboard
             </Link>
-            <button onClick={handleComingSoon} className="text-gray-500 cursor-not-allowed">
+            <button onClick={handleComingSoon} className="text-gray-500 cursor-not-allowed font-medium">
               Reports
             </button>
-            <button onClick={handleComingSoon} className="text-gray-500 cursor-not-allowed">
+            <button onClick={handleComingSoon} className="text-gray-500 cursor-not-allowed font-medium">
               Monitoring
             </button>
           </nav>
 
           {/* Desktop Right Section */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-6">
             {/* Help */}
-            <button className="p-2 text-gray-400 hover:text-white transition-colors">
+            <button className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/10">
               <HelpCircle size={20} />
             </button>
 
@@ -52,11 +52,11 @@ export default function Topbar() {
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 text-gray-400 hover:text-white transition-colors relative"
+                className="p-2 text-gray-400 hover:text-white transition-colors relative rounded-lg hover:bg-white/10"
               >
                 <Bell size={20} />
                 {notifications.length > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-sky-500 rounded-full" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-sky-500 rounded-full animate-pulse" />
                 )}
               </button>
 
@@ -66,7 +66,7 @@ export default function Topbar() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-80 bg-gray-900 rounded-lg shadow-lg border border-gray-800 py-2"
+                  className="absolute right-0 mt-3 w-80 dashboard-card py-2"
                 >
                   {notifications.length > 0 ? (
                     notifications.map((notification) => {
@@ -77,13 +77,13 @@ export default function Topbar() {
                       return (
                         <div
                           key={notification.id}
-                          className="px-4 py-3 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                          className="px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
                         >
                           <div className="flex justify-between items-start">
-                            <div className="text-sm text-gray-300">{notification.message}</div>
+                            <div className="text-sm text-gray-200">{notification.message}</div>
                             <div className="text-xs text-gray-500">{timeAgo}</div>
                           </div>
-                          <div className={`text-xs mt-1 px-2 py-1 rounded inline-block ${
+                          <div className={`text-xs mt-2 px-2 py-1 rounded-full inline-block ${
                             notification.type === 'critical' ? 'bg-red-500/20 text-red-400' :
                             notification.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
                             'bg-blue-500/20 text-blue-400'
@@ -95,15 +95,15 @@ export default function Topbar() {
                     })
                   ) : (
                     <div className="px-4 py-8 text-center">
-                      <Bell className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No new notifications</p>
-                      <p className="text-xs text-gray-600 mt-1">Analyze an address to see security alerts</p>
+                      <Bell className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+                      <p className="text-sm text-gray-400 font-medium">No new notifications</p>
+                      <p className="text-xs text-gray-500 mt-1">Analyze an address to see security alerts</p>
                     </div>
                   )}
-                  <div className="border-t border-gray-800 mt-2 pt-2 px-4">
+                  <div className="border-t border-gray-700 mt-2 pt-2 px-4">
                     <button
                       onClick={handleComingSoon}
-                      className="text-sm text-sky-400 hover:text-sky-300 transition-colors"
+                      className="text-sm text-sky-400 hover:text-sky-300 transition-colors font-medium"
                     >
                       View all notifications
                     </button>
@@ -115,12 +115,12 @@ export default function Topbar() {
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-300">
+                <span className="text-sm text-gray-200 font-medium">
                   {user?.name || user?.email}
                 </span>
                 <button
                   onClick={logout}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                  className="text-sm text-gray-400 hover:text-white transition-colors font-medium px-3 py-1 rounded-lg hover:bg-white/10"
                 >
                   Sign Out
                 </button>
@@ -129,7 +129,7 @@ export default function Topbar() {
               <div className="flex items-center gap-4">
                 <Link
                   to="/auth/google"
-                  className="text-sm text-gray-300 hover:text-white transition-colors"
+                  className="text-sm text-gray-200 hover:text-white transition-colors font-medium px-3 py-1 rounded-lg hover:bg-white/10"
                 >
                   Sign In
                 </Link>
@@ -140,7 +140,7 @@ export default function Topbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="md:hidden p-2 text-gray-400 hover:text-white transition-colors"
+            className="md:hidden p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/10"
           >
             {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -153,38 +153,38 @@ export default function Topbar() {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="md:hidden border-t border-gray-800"
+          className="md:hidden border-t border-gray-700 bg-gray-900/95 backdrop-blur-xl"
         >
-          <div className="px-4 py-4 space-y-4">
+          <div className="px-6 py-4 space-y-4">
             <Link
               to="/dashboard"
-              className="block text-gray-300 hover:text-white transition-colors"
+              className="block text-gray-200 hover:text-white transition-colors font-medium"
             >
               Dashboard
             </Link>
             <button
               onClick={handleComingSoon}
-              className="block w-full text-left text-gray-500 cursor-not-allowed"
+              className="block w-full text-left text-gray-500 cursor-not-allowed font-medium"
             >
               Reports
             </button>
             <button
               onClick={handleComingSoon}
-              className="block w-full text-left text-gray-500 cursor-not-allowed"
+              className="block w-full text-left text-gray-500 cursor-not-allowed font-medium"
             >
               Monitoring
             </button>
             {isAuthenticated ? (
               <button
                 onClick={logout}
-                className="block w-full text-left text-gray-300 hover:text-white transition-colors"
+                className="block w-full text-left text-gray-200 hover:text-white transition-colors font-medium"
               >
                 Sign Out
               </button>
             ) : (
               <Link
                 to="/auth/google"
-                className="block text-gray-300 hover:text-white transition-colors"
+                className="block text-gray-200 hover:text-white transition-colors font-medium"
               >
                 Sign In
               </Link>

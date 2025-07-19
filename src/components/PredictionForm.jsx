@@ -95,19 +95,19 @@ export default function PredictionForm({ resultsRef }) {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="glass-panel p-8"
+      className="dashboard-card p-8"
     >
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-4">
+        <h2 className="text-4xl font-bold text-white mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
           AI-Powered Blockchain Analysis
         </h2>
-        <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+        <p className="text-gray-300 text-lg max-w-3xl mx-auto leading-relaxed">
           Analyze wallet addresses and smart contracts for security risks, 
           transaction patterns, and potential vulnerabilities using advanced AI.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Mode Selection */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <motion.button
@@ -117,10 +117,10 @@ export default function PredictionForm({ resultsRef }) {
             whileHover="hover"
             whileTap="tap"
             onClick={() => setMode('address')}
-            className={`relative overflow-hidden p-6 rounded-xl border transition-all duration-300 transform perspective-1000 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`relative overflow-hidden p-8 rounded-xl border transition-all duration-300 transform perspective-1000 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               mode === 'address'
-                ? 'bg-sky-600/10 border-sky-500/50 text-white shadow-lg shadow-sky-500/10'
-                : 'bg-gray-900/50 border-gray-800/50 text-gray-300 hover:border-gray-700/50'
+                ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 border-blue-500/50 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-gray-800/30 border-gray-700/50 text-gray-300 hover:border-gray-600/50 hover:bg-gray-800/50'
             }`}
             aria-pressed={mode === 'address'}
             aria-label="Select address analysis mode"
@@ -131,19 +131,20 @@ export default function PredictionForm({ resultsRef }) {
                   y: [0, -5, 0],
                   transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                 }}
+                className="p-3 bg-blue-500/20 rounded-xl"
               >
-                <Search size={32} className="text-sky-400" aria-hidden="true" />
+                <Search size={32} className="text-blue-400" aria-hidden="true" />
               </motion.div>
-              <div>
-                <div className="font-medium text-lg">Address Analysis</div>
-                <div className="text-sm text-gray-400 mt-2">
+              <div className="text-center">
+                <div className="font-semibold text-xl mb-2">Address Analysis</div>
+                <div className="text-sm text-gray-400 leading-relaxed">
                   Analyze wallet addresses and token contracts for risk assessment
                 </div>
               </div>
             </div>
             {mode === 'address' && (
               <motion.div
-                className="absolute inset-0 border-2 border-sky-500/20 rounded-xl"
+                className="absolute inset-0 border-2 border-blue-500/30 rounded-xl"
                 layoutId="activeMode"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
@@ -157,10 +158,10 @@ export default function PredictionForm({ resultsRef }) {
             whileHover="hover"
             whileTap="tap"
             onClick={() => setMode('contract')}
-            className={`relative overflow-hidden p-6 rounded-xl border transition-all duration-300 transform perspective-1000 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`relative overflow-hidden p-8 rounded-xl border transition-all duration-300 transform perspective-1000 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
               mode === 'contract'
-                ? 'bg-purple-600/10 border-purple-500/50 text-white shadow-lg shadow-purple-500/10'
-                : 'bg-gray-900/50 border-gray-800/50 text-gray-300 hover:border-gray-700/50'
+                ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-500/50 text-white shadow-lg shadow-purple-500/20'
+                : 'bg-gray-800/30 border-gray-700/50 text-gray-300 hover:border-gray-600/50 hover:bg-gray-800/50'
             }`}
             aria-pressed={mode === 'contract'}
             aria-label="Select contract analysis mode"
@@ -171,19 +172,20 @@ export default function PredictionForm({ resultsRef }) {
                   y: [0, -5, 0],
                   transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
                 }}
+                className="p-3 bg-purple-500/20 rounded-xl"
               >
                 <Code2 size={32} className="text-purple-400" aria-hidden="true" />
               </motion.div>
-              <div>
-                <div className="font-medium text-lg">Contract Scanner</div>
-                <div className="text-sm text-gray-400 mt-2">
+              <div className="text-center">
+                <div className="font-semibold text-xl mb-2">Contract Scanner</div>
+                <div className="text-sm text-gray-400 leading-relaxed">
                   Scan smart contracts for vulnerabilities and security issues
                 </div>
               </div>
             </div>
             {mode === 'contract' && (
               <motion.div
-                className="absolute inset-0 border-2 border-purple-500/20 rounded-xl"
+                className="absolute inset-0 border-2 border-purple-500/30 rounded-xl"
                 layoutId="activeMode"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
@@ -193,55 +195,59 @@ export default function PredictionForm({ resultsRef }) {
 
         {/* Chain Selection */}
         <div className="relative">
-          <label htmlFor="chain-select" className="block text-sm font-medium text-gray-300 mb-2">
+          <label htmlFor="chain-select" className="block text-sm font-semibold text-gray-200 mb-3">
             Blockchain Network
           </label>
           <div className="relative">
             <button
               type="button"
-              id="chain-select"
               onClick={() => setIsChainOpen(!isChainOpen)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-gray-900/50 border border-gray-800 rounded-lg px-4 py-3 text-left text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full flex items-center justify-between p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-left text-white hover:border-gray-600/70 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-haspopup="listbox"
               aria-expanded={isChainOpen}
-              aria-label={`Selected chain: ${chain}`}
             >
-              <div className="flex items-center justify-between">
-                <span className="capitalize">{chain}</span>
-                <ChevronDown 
-                  className={`w-5 h-5 text-gray-400 transition-transform ${isChainOpen ? 'rotate-180' : ''}`} 
-                  aria-hidden="true" 
-                />
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${chain === 'ethereum' ? 'bg-blue-500' : 'bg-purple-500'}`} />
+                <span className="font-medium capitalize">{chain}</span>
               </div>
+              <ChevronDown 
+                className={`w-5 h-5 text-gray-400 transition-transform ${isChainOpen ? 'rotate-180' : ''}`} 
+              />
             </button>
-            
+
             <AnimatePresence>
               {isChainOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute z-10 w-full mt-1 bg-gray-900 border border-gray-800 rounded-lg shadow-lg"
-                  role="listbox"
+                  className="absolute z-10 w-full mt-2 bg-gray-800/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-xl"
                 >
-                  {['ethereum', 'polygon', 'bsc', 'arbitrum'].map((option) => (
+                  <div className="py-2">
                     <button
-                      key={option}
                       type="button"
                       onClick={() => {
-                        setChain(option)
+                        setChain('ethereum')
                         setIsChainOpen(false)
                       }}
-                      className={`w-full px-4 py-2 text-left hover:bg-gray-800 focus:outline-none focus:bg-gray-800 ${
-                        chain === option ? 'text-blue-400 bg-gray-800' : 'text-gray-300'
-                      }`}
-                      role="option"
-                      aria-selected={chain === option}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-700/50 transition-colors"
                     >
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className="font-medium">Ethereum</span>
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChain('solana')
+                        setIsChainOpen(false)
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-white hover:bg-gray-700/50 transition-colors"
+                    >
+                      <div className="w-3 h-3 rounded-full bg-purple-500" />
+                      <span className="font-medium">Solana</span>
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -250,7 +256,7 @@ export default function PredictionForm({ resultsRef }) {
 
         {/* Input Field */}
         <div>
-          <label htmlFor="analysis-input" className="block text-sm font-medium text-gray-300 mb-2">
+          <label htmlFor="analysis-input" className="block text-sm font-semibold text-gray-200 mb-3">
             {mode === 'address' ? 'Wallet Address' : 'Contract Code'}
           </label>
           <div className="relative">
@@ -259,51 +265,45 @@ export default function PredictionForm({ resultsRef }) {
               value={input}
               onChange={handleInputChange}
               placeholder={mode === 'address' 
-                ? 'Enter wallet address (e.g., 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6)' 
-                : 'Paste your smart contract code here...'
+                ? 'Enter Ethereum address (0x...) or Solana address' 
+                : 'Paste smart contract code here...'
               }
-              rows={mode === 'address' ? 3 : 8}
-              className={`w-full bg-gray-900/50 border rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${
-                error ? 'border-red-500' : 'border-gray-800'
-              }`}
-              aria-describedby={error ? 'input-error' : 'input-help'}
-              aria-invalid={error ? 'true' : 'false'}
+              className="w-full p-4 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500/50 transition-colors"
+              rows={mode === 'address' ? 2 : 8}
+              style={{ minHeight: mode === 'address' ? '80px' : '200px' }}
             />
             {error && (
-              <div id="input-error" className="flex items-center gap-2 mt-2 text-red-400 text-sm" role="alert">
-                <AlertCircle size={16} aria-hidden="true" />
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute -bottom-8 left-0 flex items-center gap-2 text-red-400 text-sm"
+              >
+                <AlertCircle size={16} />
                 {error}
-              </div>
+              </motion.div>
             )}
-            <div id="input-help" className="mt-2 text-sm text-gray-400">
-              {mode === 'address' 
-                ? 'Enter a valid Ethereum address to analyze wallet behavior and risk factors'
-                : 'Paste your Solidity smart contract code to scan for vulnerabilities and security issues'
-              }
-            </div>
           </div>
         </div>
 
         {/* Submit Button */}
         <motion.button
           type="submit"
+          disabled={loading}
           variants={buttonVariants}
           initial="rest"
           whileHover="hover"
           whileTap="tap"
-          disabled={loading || !input.trim()}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 px-8 rounded-lg font-semibold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label={loading ? 'Analyzing...' : `Analyze ${mode === 'address' ? 'address' : 'contract'}`}
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="flex items-center justify-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" aria-hidden="true" />
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
               <span>Analyzing...</span>
             </div>
           ) : (
             <div className="flex items-center justify-center gap-3">
-              <Search size={20} aria-hidden="true" />
-              <span>Analyze {mode === 'address' ? 'Address' : 'Contract'}</span>
+              <Search size={20} />
+              <span>Start Analysis</span>
             </div>
           )}
         </motion.button>

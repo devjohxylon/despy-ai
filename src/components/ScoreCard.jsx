@@ -1,82 +1,121 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Info, Shield, AlertTriangle, CheckCircle } from 'lucide-react'
+import React, { memo } from 'react';
+import { motion } from 'framer-motion';
+import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
-const getRiskLevel = (score) => {
-  if (score >= 75) return { level: 'Critical Risk', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: AlertTriangle }
-  if (score >= 50) return { level: 'High Risk', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: AlertTriangle }
-  if (score >= 25) return { level: 'Medium Risk', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', icon: Shield }
-  return { level: 'Low Risk', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle }
-}
+const ScoreCard = memo(({ score = 0 }) => {
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'text-red-400';
+    if (score >= 60) return 'text-yellow-400';
+    if (score >= 40) return 'text-orange-400';
+    return 'text-green-400';
+  };
 
-const getRiskDescription = (score) => {
-  if (score >= 75) {
-    return "Immediate attention required. High probability of malicious activity or severe vulnerabilities."
-  }
-  if (score >= 50) {
-    return "Significant risks detected. Careful investigation recommended before proceeding."
-  }
-  if (score >= 25) {
-    return "Moderate risk level. Some concerns identified but no critical issues."
-  }
-  return "Low risk profile. Basic security measures in place with minimal concerns."
-}
+  const getScoreLevel = (score) => {
+    if (score >= 80) return 'High Risk';
+    if (score >= 60) return 'Medium Risk';
+    if (score >= 40) return 'Low Risk';
+    return 'Safe';
+  };
 
-export default function ScoreCard({ score }) {
-  const [count, setCount] = useState(0)
-  const { level, color, bg, border, icon: Icon } = useMemo(() => getRiskLevel(score), [score])
-  const description = useMemo(() => getRiskDescription(score), [score])
+  const getScoreIcon = (score) => {
+    if (score >= 60) return <AlertTriangle className="w-6 h-6" />;
+    if (score >= 40) return <Clock className="w-6 h-6" />;
+    return <CheckCircle className="w-6 h-6" />;
+  };
 
-  const animateScore = useCallback(() => {
-    const duration = 1500 // Animation duration in ms
-    const steps = 60 // Number of steps
-    const increment = score / steps
-    let currentStep = 0
-    let timer = null
-
-    const animate = () => {
-      if (currentStep < steps) {
-        setCount(prev => Math.min(score, prev + increment))
-        currentStep++
-        timer = setTimeout(animate, duration / steps)
-      } else {
-        setCount(score)
-      }
-    }
-
-    animate()
-
-    return () => {
-      if (timer) {
-        clearTimeout(timer)
-      }
-    }
-  }, [score])
-
-  useEffect(() => {
-    const cleanup = animateScore()
-    return cleanup
-  }, [animateScore])
+  const getScoreBg = (score) => {
+    if (score >= 80) return 'bg-red-500/20';
+    if (score >= 60) return 'bg-yellow-500/20';
+    if (score >= 40) return 'bg-orange-500/20';
+    return 'bg-green-500/20';
+  };
 
   return (
-    <div className={`bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 ${bg} ${border}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Risk Score</h3>
-        <Icon className="w-5 h-5 text-gray-400" />
-      </div>
+    <div className="text-center">
+      <h3 className="text-xl font-semibold text-white mb-6 flex items-center justify-center">
+        <AlertTriangle className="w-5 h-5 mr-2 text-red-400" />
+        Risk Score
+      </h3>
       
-      <div className="text-center mb-4">
-        <div className="text-4xl font-bold text-white mb-2">
-          {Math.round(count)}
-        </div>
-        <div className={`text-sm font-medium ${color}`}>
-          {level}
+      <div className="relative mb-6">
+        <div className="w-32 h-32 mx-auto relative">
+          {/* Background circle */}
+          <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+            <circle
+              cx="60"
+              cy="60"
+              r="54"
+              stroke="rgba(255, 255, 255, 0.1)"
+              strokeWidth="8"
+              fill="none"
+            />
+            <motion.circle
+              cx="60"
+              cy="60"
+              r="54"
+              stroke="currentColor"
+              strokeWidth="8"
+              fill="none"
+              strokeLinecap="round"
+              className={getScoreColor(score)}
+              initial={{ strokeDasharray: 0, strokeDashoffset: 0 }}
+              animate={{ 
+                strokeDasharray: `${2 * Math.PI * 54}`,
+                strokeDashoffset: `${2 * Math.PI * 54 * (1 - score / 100)}`
+              }}
+              transition={{ duration: 1, ease: "easeOut" }}
+            />
+          </svg>
+          
+          {/* Score text */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${getScoreColor(score)}`}>
+                {score}
+              </div>
+              <div className="text-sm text-gray-400">/ 100</div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <p className="text-gray-300 text-sm leading-relaxed">
-        {description}
-      </p>
+
+      {/* Score details */}
+      <div className="space-y-4">
+        <div className={`${getScoreBg(score)} rounded-lg p-4 border border-white/10`}>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            {getScoreIcon(score)}
+            <span className={`font-semibold ${getScoreColor(score)}`}>
+              {getScoreLevel(score)}
+            </span>
+          </div>
+          <p className="text-gray-300 text-sm">
+            {score >= 80 ? 'High risk detected. Immediate attention required.' :
+             score >= 60 ? 'Moderate risk factors present. Monitor closely.' :
+             score >= 40 ? 'Low risk profile. Standard monitoring recommended.' :
+             'Safe profile. Normal activity detected.'}
+          </p>
+        </div>
+
+        {/* Risk indicators */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Suspicious Activity</div>
+            <div className="text-lg font-semibold text-white">
+              {score >= 60 ? 'High' : score >= 40 ? 'Medium' : 'Low'}
+            </div>
+          </div>
+          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+            <div className="text-xs text-gray-400 mb-1">Transaction Volume</div>
+            <div className="text-lg font-semibold text-white">
+              {score >= 80 ? 'Very High' : score >= 60 ? 'High' : 'Normal'}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+});
+
+ScoreCard.displayName = 'ScoreCard';
+
+export default ScoreCard;

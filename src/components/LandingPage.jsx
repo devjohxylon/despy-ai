@@ -29,60 +29,37 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Shield, Lock, Eye, Zap, Clock, Bell, LineChart } from 'lucide-react';
+import { 
+  ChevronRight, 
+  Shield, 
+  Lock, 
+  Eye, 
+  Zap, 
+  Clock, 
+  Bell, 
+  LineChart,
+  CheckCircle,
+  AlertTriangle,
+  Users,
+  TrendingUp,
+  Star,
+  ArrowRight,
+  Play
+} from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
 import analytics from '../utils/analytics';
 import getApiUrl from '../utils/api';
 
-// Simplified background with reduced animations
-const AnimatedBackground = memo(() => (
-  <div className="fixed inset-0 w-full min-h-screen overflow-hidden">
-    <div className="absolute inset-0 bg-[#0B0F17]" />
-    <div 
-      className="absolute inset-0 bg-gradient-radial from-blue-950/5 via-transparent to-transparent"
-      style={{ transform: 'translateZ(0)' }}
-    />
-    <motion.div 
-      className="absolute inset-0"
-      style={{
-        background: 'radial-gradient(circle at 50% 50%, #1E40AF 0%, transparent 70%)',
-        filter: 'blur(100px)',
-        opacity: 0.07,
-        willChange: 'transform',
-        transform: 'translateZ(0)'
-      }}
-      animate={{
-        scale: [1, 1.05, 1]
-      }}
-      transition={{
-        duration: 15,
-        repeat: Infinity,
-        ease: "linear"
-      }}
-    />
-    
-    <motion.div 
-      className="absolute inset-0"
-      style={{
-        background: 'radial-gradient(circle at 80% 80%, #8B5CF6 0%, transparent 70%)',
-        filter: 'blur(100px)',
-        opacity: 0.05,
-        willChange: 'transform',
-        transform: 'translateZ(0)'
-      }}
-      animate={{
-        scale: [1.05, 1, 1.05]
-      }}
-      transition={{
-        duration: 15,
-        repeat: Infinity,
-        ease: "linear"
-      }}
-    />
+// Optimized static background
+const StaticBackground = memo(() => (
+  <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="absolute inset-0 opacity-30" style={{
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+    }} />
   </div>
 ));
 
-// Optimized countdown timer component
+// Optimized countdown timer
 const CountdownTimer = memo(() => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -93,8 +70,7 @@ const CountdownTimer = memo(() => {
 
   useEffect(() => {
     function calculateTimeLeft() {
-      // Set to September 1st, 2025 at 00:00:00
-      const targetDate = new Date(2025, 8, 1).getTime(); // Month is 0-based, so 8 = September
+      const targetDate = new Date(2025, 8, 1).getTime();
       const now = new Date().getTime();
       const difference = targetDate - now;
       
@@ -108,38 +84,28 @@ const CountdownTimer = memo(() => {
       }
     }
 
-    // Calculate immediately
     calculateTimeLeft();
-    
-    // Then update every second
     const id = setInterval(calculateTimeLeft, 1000);
-    
-    // Cleanup on unmount
     return () => clearInterval(id);
   }, []);
 
-  const addLeadingZero = (value) => String(value).padStart(2, '0');
-
   return (
-    <div className="text-center">
-      <div className="text-base sm:text-lg font-light tracking-wider text-center flex items-center justify-center gap-3">
-        <span className="text-gray-400">Launch in</span>
-        <div className="font-mono flex items-center gap-3">
-          <TimeUnit value={timeLeft.days} label="days" />
-          <TimeUnit value={timeLeft.hours} label="hours" />
-          <TimeUnit value={timeLeft.minutes} label="minutes" />
-          <TimeUnit value={timeLeft.seconds} label="seconds" />
-        </div>
+    <div className="flex items-center justify-center gap-4 text-sm">
+      <span className="text-gray-400">Launch in</span>
+      <div className="flex items-center gap-3">
+        <TimeUnit value={timeLeft.days} label="days" />
+        <TimeUnit value={timeLeft.hours} label="hours" />
+        <TimeUnit value={timeLeft.minutes} label="minutes" />
+        <TimeUnit value={timeLeft.seconds} label="seconds" />
       </div>
     </div>
   );
 });
 
-// Simple time unit display component
 const TimeUnit = memo(({ value, label }) => (
   <div className="flex flex-col items-center">
-    <div className="bg-[#3B82F6] bg-opacity-20 backdrop-blur-sm px-3 py-1.5 rounded min-w-[3ch] text-center">
-      <span className="text-[#3B82F6] font-medium text-lg sm:text-xl">
+    <div className="bg-blue-500/20 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-blue-500/30">
+      <span className="text-blue-400 font-mono font-bold text-lg">
         {String(value).padStart(2, '0')}
       </span>
     </div>
@@ -147,7 +113,7 @@ const TimeUnit = memo(({ value, label }) => (
   </div>
 ));
 
-// Memoized modal component for email collection
+// Modern waitlist modal
 const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -175,12 +141,11 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
     }
 
     setIsSubmitting(true);
-    setEmailError(''); // Clear any previous errors
+    setEmailError('');
     
     try {
       await onSubmit(email);
       setEmail('');
-      // Success! The parent will handle closing the modal
     } catch (error) {
       setEmailError(error.message || 'Failed to join waitlist');
     } finally {
@@ -199,44 +164,69 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            transition={{ duration: 0.4 }}
-            className="bg-[#0B0F17] border border-gray-800 p-8 max-w-md w-full rounded-xl"
-            onClick={e => e.stopPropagation()}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 w-full max-w-md"
           >
-            <h2 className="text-3xl font-bold mb-6 text-gray-50">Join the Waitlist</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="relative">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Join the Waitlist</h3>
+              <p className="text-gray-400">Be the first to access DeSpy AI when we launch</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
                 <input
+                  id="email"
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
-                  className="w-full bg-gray-900/50 border border-gray-800 text-gray-100 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    emailError ? 'border-red-500' : 'border-white/20'
+                  }`}
                   placeholder="Enter your email"
-                  required
+                  disabled={isSubmitting}
                 />
                 {emailError && (
-                  <motion.p 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-red-400 text-sm mt-2"
-                  >
+                  <p className="mt-2 text-sm text-red-400 flex items-center gap-2">
+                    <AlertTriangle size={14} />
                     {emailError}
-                  </motion.p>
+                  </p>
                 )}
               </div>
-              <motion.button
+
+              <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full px-8 py-3 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-lg"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isSubmitting ? 'Joining...' : 'Join Waitlist'}
-              </motion.button>
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Joining...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Join Waitlist
+                  </>
+                )}
+              </button>
             </form>
+
+            <button
+              onClick={onClose}
+              className="mt-4 w-full text-gray-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
           </motion.div>
         </motion.div>
       )}
@@ -244,363 +234,310 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
   );
 });
 
-// Optimize SecurityFeature component
-const SecurityFeature = memo(({ icon: Icon, title, description }) => (
+// Feature card component
+const FeatureCard = memo(({ icon: Icon, title, description, color }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-50px" }}
     transition={{ duration: 0.5 }}
-    className="flex flex-col items-center text-center p-6 rounded-xl bg-gray-900/30 backdrop-blur-sm border border-gray-800/20"
-    style={{ willChange: 'transform, opacity' }}
+    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-white/20 transition-colors"
   >
-    <div className="p-3 rounded-full bg-blue-500/10 mb-4">
-      <Icon className="w-6 h-6 text-blue-500" />
+    <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center mb-4`}>
+      <Icon className="w-6 h-6 text-white" />
     </div>
-    <h3 className="text-lg font-semibold text-gray-200 mb-2">{title}</h3>
-    <p className="text-sm text-gray-400">{description}</p>
+    <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+    <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
   </motion.div>
 ));
 
-// Optimize RoadmapItem component
-const RoadmapItem = memo(({ date, title, status, description }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -20 }}
-    whileInView={{ opacity: 1, x: 0 }}
-    viewport={{ once: true, margin: "-50px" }}
-    transition={{ duration: 0.5 }}
-    className="flex gap-4 relative"
-    style={{ willChange: 'transform, opacity' }}
-  >
-    <div className="flex flex-col items-center">
-      <div className={`w-3 h-3 rounded-full ${
-        status === 'completed' ? 'bg-green-500' :
-        status === 'current' ? 'bg-blue-500' :
-        'bg-gray-600'
-      }`} />
-      <div className="w-0.5 h-full bg-gray-800 absolute top-3" />
+// Stats card component
+const StatsCard = memo(({ value, label, icon: Icon, color }) => (
+  <div className="text-center">
+    <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-3`}>
+      <Icon className="w-8 h-8 text-white" />
     </div>
-    <div className="pb-8">
-      <span className="text-sm text-gray-500">{date}</span>
-      <h3 className="text-lg font-semibold text-gray-200 mt-1">{title}</h3>
-      <p className="text-gray-400 mt-2 text-sm">{description}</p>
-    </div>
-  </motion.div>
+    <div className="text-3xl font-bold text-white mb-1">{value}</div>
+    <div className="text-gray-400 text-sm">{label}</div>
+  </div>
 ));
 
-// Main component with optimized countdown logic
 export default function LandingPage() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [waitlistCount, setWaitlistCount] = useState(0);
-  
-  // Set countdown target date - September 1st, 2025
-  const targetDate = new Date(2025, 8, 1).getTime(); // Month is 0-based, so 8 = September
-  
-  // Initialize countdown state
-  const [timeLeft, setTimeLeft] = useState(() => {
-    const now = Date.now();
-    const difference = Math.max(0, targetDate - now);
-    return {
-      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((difference / 1000 / 60) % 60),
-      seconds: Math.floor((difference / 1000) % 60)
-    };
+  const [stats, setStats] = useState({
+    waitlistCount: 0,
+    verifiedCount: 0
   });
 
-  // Update countdown every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = Date.now();
-      const difference = Math.max(0, targetDate - now);
-      
-      setTimeLeft({
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60)
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [targetDate]);
-
   // Fetch waitlist stats
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/stats`);
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch(getApiUrl('stats'));
-        if (res.ok) {
-          const data = await res.json();
-          setWaitlistCount(data.total || 0);
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-        setWaitlistCount(0);
-      }
-    };
     fetchStats();
   }, []);
 
-  const handleSocialClick = useCallback((platform, url) => {
-    analytics.socialClick(platform);
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, []);
-
-  const handleWaitlistSubmit = useCallback(async (email) => {
+  const handleJoinWaitlist = async (email) => {
     try {
-      analytics.waitlist.submit(email);
-
-      const response = await fetch(getApiUrl('waitlist'), {
+      const response = await fetch(`${getApiUrl()}/api/waitlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       });
 
-      let data;
-      const responseText = await response.text();
-      
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
-      }
-      
+      const data = await response.json();
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to join waitlist');
       }
 
-      analytics.waitlist.success(email);
-      
-      toast.success('Successfully joined the waitlist! Check your email.', {
-        duration: 5000,
-        style: { background: '#1F2937', color: '#F3F4F6' }
-      });
-
-      setWaitlistCount(prev => prev + 1);
+      toast.success('Successfully joined the waitlist!');
       setIsModalOpen(false);
+      fetchStats(); // Refresh stats
+      
+      // Track analytics
+      analytics.track('waitlist_joined', { email });
     } catch (error) {
-      analytics.waitlist.error(email, error.message);
       throw error;
     }
-  }, []);
+  };
+
+  const features = [
+    {
+      icon: Shield,
+      title: 'Advanced Security Analysis',
+      description: 'Detect vulnerabilities and security risks in smart contracts and wallet addresses with AI-powered analysis.',
+      color: 'bg-blue-500/20'
+    },
+    {
+      icon: Eye,
+      title: 'Real-time Monitoring',
+      description: 'Monitor blockchain transactions and detect suspicious activities in real-time across Ethereum and Solana.',
+      color: 'bg-green-500/20'
+    },
+    {
+      icon: Zap,
+      title: 'Lightning Fast Scans',
+      description: 'Analyze contracts and wallets in seconds with our optimized blockchain scanning technology.',
+      color: 'bg-purple-500/20'
+    },
+    {
+      icon: LineChart,
+      title: 'Risk Assessment',
+      description: 'Get detailed risk scores and comprehensive reports for informed decision making.',
+      color: 'bg-orange-500/20'
+    },
+    {
+      icon: Lock,
+      title: 'Privacy First',
+      description: 'Your data is encrypted and secure. We never store sensitive wallet information.',
+      color: 'bg-red-500/20'
+    },
+    {
+      icon: Users,
+      title: 'Community Driven',
+      description: 'Join thousands of users already protecting their assets with DeSpy AI.',
+      color: 'bg-indigo-500/20'
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0B0F17] text-gray-50 relative overflow-hidden font-sans flex flex-col">
-      <Toaster position="top-center" />
-      <AnimatedBackground />
-
-      {/* Countdown banner */}
-      <div className="relative w-full bg-[#0B0F17]/80 backdrop-blur-sm border-b border-gray-800/20 py-3">
-        <div className="container mx-auto px-4">
-          <CountdownTimer />
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-900 text-gray-50 relative overflow-hidden">
+      <StaticBackground />
       
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative min-h-[80vh] flex items-center justify-center px-4 py-20">
-          <div className="container mx-auto">
-            <div className="max-w-4xl mx-auto text-center space-y-8">
-              <motion.h1
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-6xl sm:text-7xl md:text-8xl font-bold"
-              >
-                <motion.span 
-                  className="text-[#3B82F6] inline-block"
-                  animate={{ opacity: [0.9, 1, 0.9] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      <div className="relative z-10">
+        {/* Navigation */}
+        <nav className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-white">DeSpy AI</span>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <CountdownTimer />
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                 >
-                  DeSpy AI
-                </motion.span>
-              </motion.h1>
+                  Dashboard
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Join Waitlist
+                </button>
+              )}
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <section className="container mx-auto px-4 py-20 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
+              <Star className="w-4 h-4 text-blue-400" />
+              <span className="text-blue-400 text-sm font-medium">Coming Soon</span>
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+              Advanced Blockchain
+              <span className="block text-blue-400">Security Analysis</span>
+            </h1>
+            
+            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Protect your assets with AI-powered analysis of smart contracts and wallet addresses. 
+              Detect vulnerabilities, monitor transactions, and stay ahead of threats on Ethereum and Solana.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2"
+              >
+                <Bell className="w-5 h-5" />
+                Join Waitlist
+              </button>
               
-              <motion.p
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                className="text-xl sm:text-2xl text-gray-400 max-w-2xl mx-auto"
-              >
-                Protect your assets with AI-powered blockchain analysis, smart contract scanning,
-                and real-time security monitoring.
-              </motion.p>
+              <button className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2">
+                <Play className="w-5 h-5" />
+                Watch Demo
+              </button>
+            </div>
 
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-                className="flex justify-center items-center pt-8"
-              >
-                {!isAuthenticated ? (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsModalOpen(true)}
-                    className="px-8 py-4 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-lg flex items-center gap-2 text-lg"
-                    style={{ willChange: 'transform' }}
-                  >
-                    Join the Waitlist <ChevronRight size={24} />
-                  </motion.button>
-                ) : (
-                  <Link
-                    to="/dashboard"
-                    onClick={() => analytics.trackEvent('button_click', { button: 'dashboard' })}
-                    className="px-8 py-4 bg-[#3B82F6] hover:bg-blue-600 text-white font-medium rounded-lg flex items-center gap-2 text-lg"
-                  >
-                    Go to Dashboard <ChevronRight size={24} />
-                  </Link>
-                )}
-              </motion.div>
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+              <StatsCard
+                value={stats.waitlistCount.toLocaleString()}
+                label="Waitlist Members"
+                icon={Users}
+                color="bg-blue-500/20"
+              />
+              <StatsCard
+                value={stats.verifiedCount.toLocaleString()}
+                label="Verified Users"
+                icon={CheckCircle}
+                color="bg-green-500/20"
+              />
+              <StatsCard
+                value="98.2%"
+                label="Success Rate"
+                icon={TrendingUp}
+                color="bg-purple-500/20"
+              />
+              <StatsCard
+                value="24/7"
+                label="Monitoring"
+                icon={Clock}
+                color="bg-orange-500/20"
+              />
+            </div>
+          </motion.div>
+        </section>
 
-              {/* Waitlist count */}
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="text-base text-gray-400"
+        {/* Features Section */}
+        <section className="container mx-auto px-4 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Why Choose DeSpy AI?
+            </h2>
+            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+              Advanced security analysis powered by artificial intelligence for the modern blockchain ecosystem.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <FeatureCard key={index} {...feature} />
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="container mx-auto px-4 py-20">
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-2xl p-12 text-center">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Ready to Secure Your Assets?
+            </h2>
+            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
+              Join thousands of users already protecting their blockchain investments with DeSpy AI.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2"
               >
-                {waitlistCount.toLocaleString()} amazing people waiting
-              </motion.p>
+                Get Early Access
+                <ArrowRight className="w-5 h-5" />
+              </button>
+              
+              <Link
+                to="/dashboard"
+                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+              >
+                View Demo
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* Security Highlights Section */}
-        <section className="relative py-32 px-4 bg-gradient-to-b from-transparent to-gray-900/20">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">Security First Approach</h2>
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Our comprehensive security features protect your assets with advanced AI and real-time monitoring.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <SecurityFeature
-                icon={Shield}
-                title="Smart Contract Scanning"
-                description="Advanced vulnerability detection using AI-powered static and dynamic analysis"
-              />
-              <SecurityFeature
-                icon={Eye}
-                title="Real-time Monitoring"
-                description="24/7 blockchain surveillance with instant alerts for suspicious activities"
-              />
-              <SecurityFeature
-                icon={Zap}
-                title="Flash Loan Detection"
-                description="Identify and prevent flash loan attacks before they impact your assets"
-              />
-              <SecurityFeature
-                icon={Lock}
-                title="Access Control Analysis"
-                description="Verify contract ownership and privilege levels for potential security risks"
-              />
-              <SecurityFeature
-                icon={Bell}
-                title="Instant Alerts"
-                description="Receive immediate notifications for any security threats or suspicious transactions"
-              />
-              <SecurityFeature
-                icon={LineChart}
-                title="Risk Analytics"
-                description="Comprehensive risk scoring and analysis for all blockchain interactions"
-              />
+        {/* Footer */}
+        <footer className="container mx-auto px-4 py-12 border-t border-white/10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-white">DeSpy AI</span>
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm text-gray-400">
+              <span>© 2024 DeSpy AI. All rights reserved.</span>
+              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
             </div>
           </div>
-        </section>
+        </footer>
+      </div>
 
-        {/* Roadmap Section */}
-        <section className="relative py-32 px-4 mb-24">
-          <div className="container mx-auto max-w-4xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">Development Roadmap</h2>
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Our journey to revolutionize blockchain security and analysis.
-              </p>
-            </motion.div>
-
-            <div className="space-y-8 pl-4">
-              <RoadmapItem
-                date="Q1 2024"
-                title="Platform Development"
-                status="completed"
-                description="Core platform development, including smart contract scanning engine and real-time monitoring system."
-              />
-              <RoadmapItem
-                date="Q2 2024"
-                title="Beta Launch"
-                status="current"
-                description="Limited beta release for early access users with core security features and monitoring capabilities."
-              />
-              <RoadmapItem
-                date="Q3 2024"
-                title="Advanced Features"
-                status="upcoming"
-                description="Release of advanced features including AI-powered risk prediction and cross-chain monitoring."
-              />
-              <RoadmapItem
-                date="Q4 2024"
-                title="Public Launch"
-                status="upcoming"
-                description="Full public launch with complete feature set and enterprise-grade security tools."
-              />
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer with Social Links */}
-      <footer className="relative py-8 bg-[#0B0F17]/80 backdrop-blur-sm border-t border-gray-800/20">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-center gap-10 text-gray-500">
-            <button 
-              onClick={() => handleSocialClick('twitter', 'https://x.com/DeSpyAI')} 
-              className="hover:text-blue-400 transition-colors p-2 hover:scale-110 transform duration-200"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-              </svg>
-            </button>
-            <button 
-              onClick={() => handleSocialClick('github', 'https://github.com/devjohxylon/despy-ai')} 
-              className="hover:text-gray-300 transition-colors p-2 hover:scale-110 transform duration-200"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-              </svg>
-            </button>
-            <button 
-              onClick={() => handleSocialClick('discord', 'https://discord.gg/jNTHCjStaS')} 
-              className="hover:text-purple-400 transition-colors p-2 hover:scale-110 transform duration-200"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      <WaitlistModal 
+      {/* Waitlist Modal */}
+      <WaitlistModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleWaitlistSubmit}
+        onSubmit={handleJoinWaitlist}
+      />
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1f2937',
+            color: '#f9fafb',
+            border: '1px solid #374151',
+          },
+        }}
       />
     </div>
   );

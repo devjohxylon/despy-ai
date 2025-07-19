@@ -1,130 +1,170 @@
-import { memo } from 'react'
-import { motion } from 'framer-motion'
+import React, { memo } from 'react';
+import { motion } from 'framer-motion';
 
 const RiskRadarChart = memo(({ data = [] }) => {
-  // Default risk categories for ETH and SOL
-  const riskCategories = [
-    'Liquidity Risk',
-    'Concentration',
-    'Smart Contract',
-    'Volatility',
-    'Manipulation',
-    'Regulatory'
-  ]
+  // Default risk categories if no data provided
+  const defaultRisks = [
+    { name: 'Smart Contract', value: 75 },
+    { name: 'Liquidity', value: 45 },
+    { name: 'Volume', value: 60 },
+    { name: 'Age', value: 30 },
+    { name: 'Complexity', value: 80 },
+    { name: 'Interactions', value: 55 }
+  ];
 
-  // Use provided data or default to zeros
-  const riskValues = data.length > 0 ? data : riskCategories.map(() => 0)
-
-  const maxValue = Math.max(...riskValues, 1) // Prevent division by zero
-  const radius = 60
-  const centerX = 120
-  const centerY = 120
-
-  // Generate polygon points
-  const generatePolygonPoints = (values, radius, centerX, centerY) => {
+  const risks = data.length > 0 ? data : defaultRisks;
+  const maxValue = Math.max(...risks.map(r => r.value), 100);
+  
+  // SVG dimensions
+  const size = 200;
+  const center = size / 2;
+  const radius = 80;
+  const numPoints = risks.length;
+  
+  // Calculate polygon points
+  const getPolygonPoints = (values, scale = 1) => {
     return values.map((value, index) => {
-      const angle = (index * 2 * Math.PI) / values.length - Math.PI / 2
-      const r = (value / maxValue) * radius
-      const x = centerX + r * Math.cos(angle)
-      const y = centerY + r * Math.sin(angle)
-      return `${x},${y}`
-    }).join(' ')
-  }
+      const angle = (index * 2 * Math.PI) / numPoints - Math.PI / 2;
+      const r = (value / maxValue) * radius * scale;
+      const x = center + r * Math.cos(angle);
+      const y = center + r * Math.sin(angle);
+      return `${x},${y}`;
+    }).join(' ');
+  };
 
-  const polygonPoints = generatePolygonPoints(riskValues, radius, centerX, centerY)
+  // Calculate axis points
+  const getAxisPoints = (index) => {
+    const angle = (index * 2 * Math.PI) / numPoints - Math.PI / 2;
+    const x = center + radius * Math.cos(angle);
+    const y = center + radius * Math.sin(angle);
+    return { x, y, angle };
+  };
+
+  // Get color based on risk value
+  const getRiskColor = (value) => {
+    if (value >= 80) return '#ef4444'; // red
+    if (value >= 60) return '#f59e0b'; // yellow
+    if (value >= 40) return '#f97316'; // orange
+    return '#10b981'; // green
+  };
 
   return (
     <div className="flex flex-col items-center">
-      {/* Radar Chart */}
-      <div className="relative mb-6">
-        <svg width="240" height="240" className="transform -rotate-90">
-          {/* Background grid */}
-          {[0.2, 0.4, 0.6, 0.8, 1.0].map((level, index) => (
-            <g key={index}>
-              {/* Circular grid lines */}
-              <circle
-                cx={centerX}
-                cy={centerY}
-                r={radius * level}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.1)"
+      <div className="relative">
+        <svg width={size} height={size} className="mx-auto">
+          {/* Background circles */}
+          {[0.2, 0.4, 0.6, 0.8, 1].map((scale, index) => (
+            <circle
+              key={index}
+              cx={center}
+              cy={center}
+              r={radius * scale}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.1)"
+              strokeWidth="1"
+            />
+          ))}
+          
+          {/* Axis lines */}
+          {risks.map((_, index) => {
+            const axis = getAxisPoints(index);
+            return (
+              <line
+                key={index}
+                x1={center}
+                y1={center}
+                x2={axis.x}
+                y2={axis.y}
+                stroke="rgba(255, 255, 255, 0.2)"
                 strokeWidth="1"
               />
-              
-              {/* Radial grid lines */}
-              {riskCategories.map((_, categoryIndex) => {
-                const angle = (categoryIndex * 2 * Math.PI) / riskCategories.length
-                const x = centerX + radius * Math.cos(angle)
-                const y = centerY + radius * Math.sin(angle)
-                return (
-                  <line
-                    key={categoryIndex}
-                    x1={centerX}
-                    y1={centerY}
-                    x2={x}
-                    y2={y}
-                    stroke="rgba(255, 255, 255, 0.1)"
-                    strokeWidth="1"
-                  />
-                )
-              })}
-            </g>
-          ))}
-
-          {/* Risk area polygon */}
+            );
+          })}
+          
+          {/* Risk area */}
           <motion.polygon
-            points={polygonPoints}
+            points={getPolygonPoints(risks.map(r => r.value))}
             fill="rgba(59, 130, 246, 0.2)"
             stroke="rgba(59, 130, 246, 0.8)"
             strokeWidth="2"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
           />
-
-          {/* Center point */}
-          <circle
-            cx={centerX}
-            cy={centerY}
-            r="3"
-            fill="rgba(59, 130, 246, 1)"
-          />
+          
+          {/* Risk points */}
+          {risks.map((risk, index) => {
+            const axis = getAxisPoints(index);
+            const pointRadius = (risk.value / maxValue) * radius;
+            const x = center + pointRadius * Math.cos(axis.angle);
+            const y = center + pointRadius * Math.sin(axis.angle);
+            
+            return (
+              <motion.circle
+                key={index}
+                cx={x}
+                cy={y}
+                r="4"
+                fill={getRiskColor(risk.value)}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              />
+            );
+          })}
         </svg>
+        
+        {/* Risk labels */}
+        <div className="absolute inset-0 pointer-events-none">
+          {risks.map((risk, index) => {
+            const axis = getAxisPoints(index);
+            const labelRadius = radius + 25;
+            const x = center + labelRadius * Math.cos(axis.angle);
+            const y = center + labelRadius * Math.sin(axis.angle);
+            
+            return (
+              <div
+                key={index}
+                className="absolute text-xs font-medium text-gray-300 transform -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  left: x,
+                  top: y,
+                  textAlign: 'center',
+                  minWidth: '60px'
+                }}
+              >
+                <div className="mb-1">{risk.name}</div>
+                <div 
+                  className="text-xs font-bold"
+                  style={{ color: getRiskColor(risk.value) }}
+                >
+                  {risk.value}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
-
-      {/* Risk Categories Legend */}
-      <div className="grid grid-cols-2 gap-3 w-full">
-        {riskCategories.map((category, index) => (
-          <div key={category} className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">{category}</span>
-            <span className="text-white font-medium">
-              {riskValues[index] ? `${riskValues[index].toFixed(1)}%` : '0.0%'}
+      
+      {/* Legend */}
+      <div className="mt-6 grid grid-cols-2 gap-4 w-full">
+        {risks.map((risk, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: getRiskColor(risk.value) }}
+            />
+            <span className="text-xs text-gray-400">{risk.name}</span>
+            <span className="text-xs font-semibold text-white ml-auto">
+              {risk.value}%
             </span>
           </div>
         ))}
       </div>
-
-      {/* Summary */}
-      {riskValues.some(v => v > 0) ? (
-        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-blue-400 text-sm text-center">
-            {riskValues.filter(v => v > 50).length > 0 
-              ? `${riskValues.filter(v => v > 50).length} high-risk factors detected`
-              : 'All risk factors within normal range'
-            }
-          </p>
-        </div>
-      ) : (
-        <div className="mt-4 p-3 bg-gray-500/10 border border-gray-500/20 rounded-lg">
-          <p className="text-gray-400 text-sm text-center">
-            No risk data available
-          </p>
-        </div>
-      )}
     </div>
-  )
-})
+  );
+});
 
-RiskRadarChart.displayName = 'RiskRadarChart'
+RiskRadarChart.displayName = 'RiskRadarChart';
 
-export default RiskRadarChart
+export default RiskRadarChart;

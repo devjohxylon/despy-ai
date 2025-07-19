@@ -1,200 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, Medal, Award, TrendingUp, Users, Zap } from 'lucide-react';
+import React, { memo, useState } from 'react';
+import { Trophy, Medal, Award, TrendingUp, Users, FileText } from 'lucide-react';
 
-const Leaderboard = () => {
-  const [leaderboardData, setLeaderboardData] = useState([
-    {
-      id: 1,
-      username: 'CryptoWhale',
-      scans: 247,
-      chain: 'ETH',
-      type: 'Wallets',
-      avatar: '🐋',
-      rank: 1,
-      score: 98.5
-    },
-    {
-      id: 2,
-      username: 'SmartContractor',
-      scans: 189,
-      chain: 'SOL',
-      type: 'Contracts',
-      avatar: '⚡',
-      rank: 2,
-      score: 96.2
-    },
-    {
-      id: 3,
-      username: 'DeFiDetective',
-      scans: 156,
-      chain: 'ETH',
-      type: 'Wallets',
-      avatar: '🔍',
-      rank: 3,
-      score: 94.8
-    },
-    {
-      id: 4,
-      username: 'BlockchainBuddy',
-      scans: 134,
-      chain: 'SOL',
-      type: 'Contracts',
-      avatar: '🤖',
-      rank: 4,
-      score: 92.1
-    },
-    {
-      id: 5,
-      username: 'TokenTracker',
-      scans: 98,
-      chain: 'ETH',
-      type: 'Wallets',
-      avatar: '🎯',
-      rank: 5,
-      score: 89.7
-    }
-  ]);
+const Leaderboard = memo(() => {
+  const [activeTab, setActiveTab] = useState('wallets');
+  const [activeChain, setActiveChain] = useState('eth');
 
-  const [activeFilter, setActiveFilter] = useState('all');
-
-  const getRankIcon = (rank) => {
-    switch (rank) {
-      case 1:
-        return <Trophy className="w-5 h-5 text-yellow-400" />;
-      case 2:
-        return <Medal className="w-5 h-5 text-gray-300" />;
-      case 3:
-        return <Award className="w-5 h-5 text-amber-600" />;
-      default:
-        return <span className="text-gray-400 font-bold">#{rank}</span>;
+  // Mock data - replace with real data from your backend
+  const leaderboardData = {
+    wallets: {
+      eth: [
+        { rank: 1, address: '0x1234...5678', scans: 1247, icon: Trophy, color: 'text-yellow-400' },
+        { rank: 2, address: '0x8765...4321', scans: 1156, icon: Medal, color: 'text-gray-400' },
+        { rank: 3, address: '0xabcd...efgh', scans: 1043, icon: Award, color: 'text-amber-600' },
+        { rank: 4, address: '0xfedc...ba98', scans: 987, icon: null, color: 'text-gray-500' },
+        { rank: 5, address: '0x9999...8888', scans: 876, icon: null, color: 'text-gray-500' }
+      ],
+      sol: [
+        { rank: 1, address: 'ABC123...XYZ789', scans: 892, icon: Trophy, color: 'text-yellow-400' },
+        { rank: 2, address: 'DEF456...UVW012', scans: 756, icon: Medal, color: 'text-gray-400' },
+        { rank: 3, address: 'GHI789...RST345', scans: 654, icon: Award, color: 'text-amber-600' },
+        { rank: 4, address: 'JKL012...OPQ678', scans: 543, icon: null, color: 'text-gray-500' },
+        { rank: 5, address: 'MNO345...PQR901', scans: 432, icon: null, color: 'text-gray-500' }
+      ]
+    },
+    contracts: {
+      eth: [
+        { rank: 1, address: '0xcontract1...', scans: 2156, icon: Trophy, color: 'text-yellow-400' },
+        { rank: 2, address: '0xcontract2...', scans: 1987, icon: Medal, color: 'text-gray-400' },
+        { rank: 3, address: '0xcontract3...', scans: 1876, icon: Award, color: 'text-amber-600' },
+        { rank: 4, address: '0xcontract4...', scans: 1654, icon: null, color: 'text-gray-500' },
+        { rank: 5, address: '0xcontract5...', scans: 1432, icon: null, color: 'text-gray-500' }
+      ],
+      sol: [
+        { rank: 1, address: 'ContractABC...', scans: 1654, icon: Trophy, color: 'text-yellow-400' },
+        { rank: 2, address: 'ContractDEF...', scans: 1432, icon: Medal, color: 'text-gray-400' },
+        { rank: 3, address: 'ContractGHI...', scans: 1298, icon: Award, color: 'text-amber-600' },
+        { rank: 4, address: 'ContractJKL...', scans: 1156, icon: null, color: 'text-gray-500' },
+        { rank: 5, address: 'ContractMNO...', scans: 987, icon: null, color: 'text-gray-500' }
+      ]
     }
   };
 
-  const getChainColor = (chain) => {
-    return chain === 'ETH' ? 'text-blue-400' : 'text-purple-400';
-  };
-
-  const getTypeColor = (type) => {
-    return type === 'Wallets' ? 'text-green-400' : 'text-orange-400';
-  };
-
-  const filteredData = leaderboardData.filter(item => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'eth') return item.chain === 'ETH';
-    if (activeFilter === 'sol') return item.chain === 'SOL';
-    if (activeFilter === 'wallets') return item.type === 'Wallets';
-    if (activeFilter === 'contracts') return item.type === 'Contracts';
-    return true;
-  });
+  const currentData = leaderboardData[activeTab][activeChain];
 
   return (
     <div className="space-y-4">
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-white/5 rounded-lg p-1">
         <button
-          onClick={() => setActiveFilter('all')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            activeFilter === 'all'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          onClick={() => setActiveTab('wallets')}
+          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'wallets'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-400 hover:text-white'
           }`}
         >
-          All
-        </button>
-        <button
-          onClick={() => setActiveFilter('eth')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            activeFilter === 'eth'
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          ETH
-        </button>
-        <button
-          onClick={() => setActiveFilter('sol')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            activeFilter === 'sol'
-              ? 'bg-purple-500 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
-          SOL
-        </button>
-        <button
-          onClick={() => setActiveFilter('wallets')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            activeFilter === 'wallets'
-              ? 'bg-green-500 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
-        >
+          <Users className="w-4 h-4 inline mr-1" />
           Wallets
         </button>
         <button
-          onClick={() => setActiveFilter('contracts')}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-            activeFilter === 'contracts'
-              ? 'bg-orange-500 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          onClick={() => setActiveTab('contracts')}
+          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'contracts'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-400 hover:text-white'
           }`}
         >
+          <FileText className="w-4 h-4 inline mr-1" />
           Contracts
+        </button>
+      </div>
+
+      {/* Chain Selection */}
+      <div className="flex space-x-1 bg-white/5 rounded-lg p-1">
+        <button
+          onClick={() => setActiveChain('eth')}
+          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            activeChain === 'eth'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Ethereum
+        </button>
+        <button
+          onClick={() => setActiveChain('sol')}
+          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+            activeChain === 'sol'
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          Solana
         </button>
       </div>
 
       {/* Leaderboard List */}
       <div className="space-y-2">
-        {filteredData.map((user, index) => (
-          <motion.div
-            key={user.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors"
+        {currentData.map((item) => (
+          <div
+            key={item.rank}
+            className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-3">
               <div className="flex items-center justify-center w-8 h-8">
-                {getRankIcon(user.rank)}
+                {item.icon ? (
+                  <item.icon className={`w-5 h-5 ${item.color}`} />
+                ) : (
+                  <span className={`text-sm font-bold ${item.color}`}>
+                    {item.rank}
+                  </span>
+                )}
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{user.avatar}</span>
-                <div>
-                  <div className="text-white font-medium text-sm">{user.username}</div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className={getChainColor(user.chain)}>{user.chain}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className={getTypeColor(user.type)}>{user.type}</span>
-                  </div>
+              <div>
+                <div className="text-white font-medium text-sm">
+                  {item.address}
+                </div>
+                <div className="text-gray-400 text-xs">
+                  {activeChain.toUpperCase()} {activeTab.slice(0, -1)}
                 </div>
               </div>
             </div>
-
-            <div className="text-right">
-              <div className="text-white font-bold text-sm">{user.scans}</div>
-              <div className="text-gray-400 text-xs">scans</div>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4 text-green-400" />
+              <span className="text-white font-semibold text-sm">
+                {item.scans.toLocaleString()}
+              </span>
+              <span className="text-gray-400 text-xs">scans</span>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
-      {/* Stats Summary */}
-      <div className="pt-4 border-t border-gray-700">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-white">824</div>
-            <div className="text-gray-400 text-xs">Total Scans</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-white">156</div>
-            <div className="text-gray-400 text-xs">Active Users</div>
-          </div>
-        </div>
-      </div>
+      {/* View All Button */}
+      <button className="w-full mt-4 py-2 px-4 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors">
+        View Full Leaderboard
+      </button>
     </div>
   );
-};
+});
+
+Leaderboard.displayName = 'Leaderboard';
 
 export default Leaderboard; 

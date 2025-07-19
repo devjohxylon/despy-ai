@@ -60,73 +60,132 @@
   }
 }
 
+/* Landing page specific styles */
+.hero-gradient {
+  background: linear-gradient(135deg, #1e40af 0%, #7c3aed 50%, #1e40af 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glass morphism effects */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Button hover effects */
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900;
+}
+
+.btn-secondary {
+  @apply bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900;
+}
+
+/* Text selection */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: white;
+}
+
 /* Glass panel effect */
 .glass-panel {
-  @apply bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-xl;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
 }
 
-/* Clerk Dark Theme Styling - Clean app style */
-/* Remove development badge */
-.cl-footer {
-  display: none !important;
+/* Dashboard specific styles */
+.dashboard-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
 }
 
-/* Close button (X) - make it more visible */
-.cl-modalCloseButton,
-.cl-userButtonPopoverActionButton[data-clerk-close],
-.cl-button[data-clerk-close] {
-  background: rgba(55, 65, 81, 0.8) !important; /* gray-700 */
-  color: rgb(243, 244, 246) !important; /* gray-100 */
-  border-radius: 6px !important;
-  width: 32px !important;
-  height: 32px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 18px !important;
-  font-weight: 600 !important;
+.stats-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
 }
 
-.cl-modalCloseButton:hover,
-.cl-userButtonPopoverActionButton[data-clerk-close]:hover,
-.cl-button[data-clerk-close]:hover {
-  background: rgba(75, 85, 99, 0.9) !important; /* gray-600 */
-  color: rgb(249, 250, 251) !important; /* gray-50 */
+.stats-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
-/* All modals and cards - glass effect to match app */
-.cl-modal .cl-modalContent,
-.cl-userProfile .cl-modalContent,
-.cl-organizationProfile .cl-modalContent,
-.cl-modalContent,
-.cl-card,
-.cl-rootBox,
-.cl-main,
-div[data-clerk-modal],
-div[data-clerk-modal] > div {
-  background: rgba(17, 24, 39, 0.95) !important; /* semi-transparent gray-900 */
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(55, 65, 81, 0.5) !important; /* gray-700 with opacity */
-  border-radius: 12px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+.dashboard-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
 }
 
-/* User button dropdown */
-.cl-userButtonPopoverCard {
-  background: rgba(17, 24, 39, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(55, 65, 81, 0.5) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3) !important;
+.dashboard-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Headers and titles - better contrast */
+.risk-score-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.risk-score-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Clerk custom styles */
 .cl-headerTitle,
 .cl-modal .cl-headerTitle,
 .cl-userProfile .cl-headerTitle,
 div[data-clerk-modal] h1,
 div[data-clerk-modal] h2 {
-  color: rgb(249, 250, 251) !important; /* gray-50 for better readability */
+  color: rgb(249, 250, 251) !important;
   font-weight: 600 !important;
 }
 
@@ -134,27 +193,25 @@ div[data-clerk-modal] h2 {
 .cl-modal .cl-headerSubtitle,
 .cl-userProfile .cl-headerSubtitle,
 div[data-clerk-modal] p {
-  color: rgb(209, 213, 219) !important; /* gray-300 for good contrast */
+  color: rgb(209, 213, 219) !important;
 }
 
-/* Form labels */
 .cl-formFieldLabel,
 .cl-modal .cl-formFieldLabel,
 .cl-userProfile .cl-formFieldLabel,
 div[data-clerk-modal] label {
-  color: rgb(229, 231, 235) !important; /* gray-200 */
+  color: rgb(229, 231, 235) !important;
   font-weight: 500 !important;
 }
 
-/* Input fields - glass effect */
 .cl-formFieldInput,
 .cl-modal .cl-formFieldInput,
 .cl-userProfile .cl-formFieldInput,
 div[data-clerk-modal] input,
 div[data-clerk-modal] textarea {
-  background: rgba(31, 41, 55, 0.8) !important; /* gray-800 with opacity */
-  border: 1px solid rgba(75, 85, 99, 0.6) !important; /* gray-600 */
-  color: rgb(243, 244, 246) !important; /* gray-100 */
+  background: rgba(31, 41, 55, 0.8) !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  color: rgb(243, 244, 246) !important;
   border-radius: 8px !important;
 }
 
@@ -163,121 +220,128 @@ div[data-clerk-modal] textarea {
 .cl-userProfile .cl-formFieldInput:focus,
 div[data-clerk-modal] input:focus,
 div[data-clerk-modal] textarea:focus {
-  border-color: rgb(59, 130, 246) !important; /* blue-500 */
+  border-color: rgb(59, 130, 246) !important;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
   background: rgba(31, 41, 55, 0.9) !important;
 }
 
 .cl-formFieldInput::placeholder {
-  color: rgb(156, 163, 175) !important; /* gray-400 */
+  color: rgb(156, 163, 175) !important;
 }
 
-/* Buttons */
 .cl-formButtonPrimary,
 .cl-modal .cl-formButtonPrimary,
 .cl-userProfile .cl-formButtonPrimary,
 div[data-clerk-modal] button[type="submit"] {
-  background: linear-gradient(135deg, rgb(59, 130, 246), rgb(37, 99, 235)) !important;
+  background: rgb(59, 130, 246) !important;
   color: white !important;
   border: none !important;
   border-radius: 8px !important;
-  font-weight: 600 !important;
-  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
 }
 
 .cl-formButtonPrimary:hover,
 .cl-modal .cl-formButtonPrimary:hover,
-.cl-userProfile .cl-formButtonPrimary:hover {
-  background: linear-gradient(135deg, rgb(37, 99, 235), rgb(29, 78, 216)) !important;
-  box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.4) !important;
+.cl-userProfile .cl-formButtonPrimary:hover,
+div[data-clerk-modal] button[type="submit"]:hover {
+  background: rgb(37, 99, 235) !important;
   transform: translateY(-1px) !important;
 }
 
-/* Social buttons */
-.cl-socialButtonsBlockButton {
-  background: rgba(31, 41, 55, 0.6) !important;
-  border: 1px solid rgba(75, 85, 99, 0.5) !important;
+.cl-formButtonSecondary,
+.cl-modal .cl-formButtonSecondary,
+.cl-userProfile .cl-formButtonSecondary,
+div[data-clerk-modal] button:not([type="submit"]) {
+  background: rgba(75, 85, 99, 0.6) !important;
   color: rgb(243, 244, 246) !important;
+  border: 1px solid rgba(75, 85, 99, 0.8) !important;
   border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
 }
 
-.cl-socialButtonsBlockButton:hover {
-  background: rgba(31, 41, 55, 0.8) !important;
-  border-color: rgba(75, 85, 99, 0.7) !important;
+.cl-formButtonSecondary:hover,
+.cl-modal .cl-formButtonSecondary:hover,
+.cl-userProfile .cl-formButtonSecondary:hover,
+div[data-clerk-modal] button:not([type="submit"]):hover {
+  background: rgba(75, 85, 99, 0.8) !important;
+  border-color: rgba(75, 85, 99, 1) !important;
 }
 
-/* User button popover content */
-.cl-userButtonPopoverMain {
+.cl-userButtonPopoverCard,
+.cl-modal .cl-userButtonPopoverCard,
+.cl-userProfile .cl-userButtonPopoverCard,
+div[data-clerk-modal] .cl-userButtonPopoverCard {
+  background: rgba(31, 41, 55, 0.95) !important;
+  border: 1px solid rgba(75, 85, 99, 0.6) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.cl-userButtonPopoverActionButton,
+.cl-modal .cl-userButtonPopoverActionButton,
+.cl-userProfile .cl-userButtonPopoverActionButton,
+div[data-clerk-modal] .cl-userButtonPopoverActionButton {
   background: transparent !important;
+  color: rgb(209, 213, 219) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: all 0.2s !important;
+}
+
+.cl-userButtonPopoverActionButton:hover,
+.cl-modal .cl-userButtonPopoverActionButton:hover,
+.cl-userProfile .cl-userButtonPopoverActionButton:hover,
+div[data-clerk-modal] .cl-userButtonPopoverActionButton:hover {
+  background: rgba(75, 85, 99, 0.6) !important;
   color: rgb(243, 244, 246) !important;
 }
 
-.cl-userButtonPopoverActions {
-  background: transparent !important;
-  border-top: 1px solid rgba(55, 65, 81, 0.5) !important;
-}
-
-/* User button popover action buttons */
-.cl-userButtonPopoverActionButton {
-  background: transparent !important;
-  color: rgb(209, 213, 219) !important; /* gray-300 */
-  border-radius: 8px !important;
-  padding: 12px !important;
-}
-
-.cl-userButtonPopoverActionButton:hover {
-  background: rgba(31, 41, 55, 0.6) !important; /* gray-800 */
-  color: rgb(243, 244, 246) !important; /* gray-100 */
-}
-
-/* User button popover action button icons */
-.cl-userButtonPopoverActionButtonIcon {
-  color: rgb(156, 163, 175) !important; /* gray-400 */
+.cl-userButtonPopoverActionButtonIcon,
+.cl-modal .cl-userButtonPopoverActionButtonIcon,
+.cl-userProfile .cl-userButtonPopoverActionButtonIcon,
+div[data-clerk-modal] .cl-userButtonPopoverActionButtonIcon {
+  color: rgb(156, 163, 175) !important;
 }
 
 .cl-userButtonPopoverActionButton:hover .cl-userButtonPopoverActionButtonIcon {
-  color: rgb(209, 213, 219) !important; /* gray-300 */
+  color: rgb(209, 213, 219) !important;
 }
 
-/* User button popover action button text */
 .cl-userButtonPopoverActionButtonText {
-  color: rgb(209, 213, 219) !important; /* gray-300 */
+  color: rgb(209, 213, 219) !important;
 }
 
 .cl-userButtonPopoverActionButton:hover .cl-userButtonPopoverActionButtonText {
-  color: rgb(243, 244, 246) !important; /* gray-100 */
+  color: rgb(243, 244, 246) !important;
 }
 
-/* Links */
 .cl-link {
-  color: rgb(96, 165, 250) !important; /* blue-400 */
+  color: rgb(96, 165, 250) !important;
 }
 
 .cl-link:hover {
-  color: rgb(147, 197, 253) !important; /* blue-300 */
+  color: rgb(147, 197, 253) !important;
 }
 
-/* Modal backdrop - blend with background */
 .cl-modalBackdrop {
   background: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(4px) !important;
 }
 
-/* Dividers */
 .cl-dividerLine {
   border-color: rgba(55, 65, 81, 0.5) !important;
 }
 
-/* General text elements */
 .cl-text,
 .cl-modal *,
 .cl-userProfile *,
 .cl-organizationProfile *,
 div[data-clerk-modal] * {
-  color: rgb(209, 213, 219) !important; /* gray-300 */
+  color: rgb(209, 213, 219) !important;
 }
 
-/* Profile sidebar - simple clean style */
 .cl-profileSectionPrimaryButton,
 .cl-userProfile nav,
 .cl-userProfile .cl-navbar,
@@ -295,7 +359,6 @@ div[data-clerk-modal] nav button:hover {
   color: rgb(243, 244, 246) !important;
 }
 
-/* Active navigation - simple blue accent */
 .cl-profileSectionPrimaryButton[aria-current="page"],
 .cl-profileSectionPrimaryButton.cl-active {
   background: rgba(59, 130, 246, 0.2) !important;
