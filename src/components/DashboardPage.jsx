@@ -1,5 +1,5 @@
 // src/components/DashboardPage.jsx
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Coins, TrendingUp, Users, Zap, Shield, Activity, AlertTriangle, CheckCircle, Eye, Lock, Cpu, BarChart3 } from 'lucide-react'
 import { useData } from '../context/DataContext'
@@ -11,6 +11,7 @@ import PredictionForm from './PredictionForm'
 import Topbar from './Topbar'
 import TokenDisplay from './TokenDisplay'
 import Leaderboard from './Leaderboard'
+import MLThreatPredictor from './MLThreatPredictor'
 
 // Simplified animation variants
 const containerVariants = {
@@ -42,7 +43,14 @@ export default memo(function DashboardPage() {
   const { data, loading } = useData()
   const [userTokens, setUserTokens] = useState(500)
   const [showTokenSystem, setShowTokenSystem] = useState(false)
+  const [mlThreats, setMlThreats] = useState([])
   const resultsRef = useRef(null)
+
+  // Handle ML threat detection
+  const handleThreatDetected = useCallback((threats) => {
+    setMlThreats(threats)
+    // You can also update the main data context here
+  }, [])
 
   // Memoized dashboard content to prevent unnecessary re-renders
   const dashboardContent = useMemo(() => {
@@ -111,15 +119,15 @@ export default memo(function DashboardPage() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm font-medium mb-2">Risk Detected</p>
-                <p className="text-4xl font-bold text-white mb-2">23</p>
+                <p className="text-gray-400 text-sm font-medium mb-2">ML Threats</p>
+                <p className="text-4xl font-bold text-white mb-2">{mlThreats.length}</p>
                 <p className="text-red-400 text-sm font-medium flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
-                  -5% this week
+                  AI Detected
                 </p>
               </div>
               <div className="p-4 bg-red-500/20 rounded-2xl">
-                <Shield className="w-8 h-8 text-red-400" />
+                <Cpu className="w-8 h-8 text-red-400" />
               </div>
             </div>
           </motion.div>
@@ -146,6 +154,18 @@ export default memo(function DashboardPage() {
           </motion.div>
         </div>
 
+        {/* ML Threat Predictor */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <MLThreatPredictor 
+            walletAddress={data?.walletAddress || "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"}
+            onThreatDetected={handleThreatDetected}
+          />
+        </motion.div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Left Column - Analysis */}
@@ -155,7 +175,7 @@ export default memo(function DashboardPage() {
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.6 }}
                 className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
               >
                 <ScoreCard score={data.score || 0} />
@@ -163,7 +183,7 @@ export default memo(function DashboardPage() {
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
+                transition={{ delay: 0.7 }}
                 className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
               >
                 <h3 className="text-2xl font-semibold text-white mb-8 flex items-center">
@@ -178,7 +198,7 @@ export default memo(function DashboardPage() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.8 }}
               className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
             >
               <h3 className="text-2xl font-semibold text-white mb-8 flex items-center">
@@ -192,7 +212,7 @@ export default memo(function DashboardPage() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.9 }}
               className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
             >
               <h3 className="text-2xl font-semibold text-white mb-8 flex items-center">
@@ -254,7 +274,7 @@ export default memo(function DashboardPage() {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.9 }}
+              transition={{ delay: 1.0 }}
               className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
             >
               <TokenDisplay 
@@ -268,7 +288,7 @@ export default memo(function DashboardPage() {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.0 }}
+              transition={{ delay: 1.1 }}
               className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
             >
               <h3 className="text-2xl font-semibold text-white mb-8 flex items-center">
@@ -282,7 +302,7 @@ export default memo(function DashboardPage() {
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.1 }}
+              transition={{ delay: 1.2 }}
               className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
             >
               <h3 className="text-2xl font-semibold text-white mb-8 flex items-center">
@@ -299,14 +319,14 @@ export default memo(function DashboardPage() {
           ref={resultsRef}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
+          transition={{ delay: 1.3 }}
           className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-8 hover:border-slate-600/70 transition-all duration-300"
         >
           <PredictionForm resultsRef={resultsRef} />
         </motion.div>
       </div>
     )
-  }, [data, loading, userTokens])
+  }, [data, loading, userTokens, mlThreats, handleThreatDetected])
 
   return (
     <div className="min-h-screen bg-slate-950 text-gray-50 relative overflow-hidden">
