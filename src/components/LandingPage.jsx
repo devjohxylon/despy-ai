@@ -53,8 +53,8 @@ import getApiUrl from '../utils/api';
 
 // Optimized static background
 const StaticBackground = memo(() => (
-  <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-    <div className="absolute inset-0 opacity-30" style={{
+  <div className="fixed inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="absolute inset-0 opacity-20" style={{
       backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
     }} />
   </div>
@@ -162,26 +162,26 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50"
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 w-full max-w-md"
+            className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 w-full max-w-md shadow-2xl"
           >
-            <div className="text-center mb-6">
+            <div className="text-center mb-8">
               <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Bell className="w-8 h-8 text-blue-400" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Join the Waitlist</h3>
+              <h3 className="text-2xl font-bold text-white mb-3">Join the Waitlist</h3>
               <p className="text-gray-400">Be the first to access DeSpy AI when we launch</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-3">
                   Email Address
                 </label>
                 <input
@@ -189,14 +189,14 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
-                    emailError ? 'border-red-500' : 'border-white/20'
+                  className={`w-full px-4 py-3 bg-slate-800/50 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    emailError ? 'border-red-500' : 'border-slate-600/50'
                   }`}
                   placeholder="Enter your email"
                   disabled={isSubmitting}
                 />
                 {emailError && (
-                  <p className="mt-2 text-sm text-red-400 flex items-center gap-2">
+                  <p className="mt-3 text-sm text-red-400 flex items-center gap-2">
                     <AlertTriangle size={14} />
                     {emailError}
                   </p>
@@ -224,7 +224,7 @@ const WaitlistModal = memo(({ isOpen, onClose, onSubmit }) => {
 
             <button
               onClick={onClose}
-              className="mt-4 w-full text-gray-400 hover:text-white transition-colors"
+              className="mt-6 w-full text-gray-400 hover:text-white transition-colors"
             >
               Cancel
             </button>
@@ -241,12 +241,12 @@ const FeatureCard = memo(({ icon: Icon, title, description, color }) => (
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
-    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-white/20 transition-colors"
+    className="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-8 hover:border-slate-600/70 transition-all duration-300 hover:bg-slate-800/40"
   >
-    <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center mb-4`}>
-      <Icon className="w-6 h-6 text-white" />
+    <div className={`w-14 h-14 ${color} rounded-xl flex items-center justify-center mb-6`}>
+      <Icon className="w-7 h-7 text-white" />
     </div>
-    <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+    <h3 className="text-xl font-semibold text-white mb-4">{title}</h3>
     <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
   </motion.div>
 ));
@@ -254,10 +254,10 @@ const FeatureCard = memo(({ icon: Icon, title, description, color }) => (
 // Stats card component
 const StatsCard = memo(({ value, label, icon: Icon, color }) => (
   <div className="text-center">
-    <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-3`}>
+    <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4`}>
       <Icon className="w-8 h-8 text-white" />
     </div>
-    <div className="text-3xl font-bold text-white mb-1">{value}</div>
+    <div className="text-2xl font-bold text-white mb-2">{value}</div>
     <div className="text-gray-400 text-sm">{label}</div>
   </div>
 ));
@@ -369,33 +369,33 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-50 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-gray-50 relative overflow-hidden">
       <StaticBackground />
       
       <div className="relative z-10">
         {/* Navigation */}
-        <nav className="container mx-auto px-4 py-6">
+        <nav className="container mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-white">DeSpy AI</span>
+              <span className="text-2xl font-bold text-white">DeSpy AI</span>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               <CountdownTimer />
               {user ? (
                 <Link
                   to="/dashboard"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium transition-colors"
                 >
                   Dashboard
                 </Link>
               ) : (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-medium transition-colors"
                 >
                   Join Waitlist
                 </button>
@@ -405,45 +405,45 @@ export default function LandingPage() {
         </nav>
 
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-20 text-center">
+        <section className="container mx-auto px-6 py-24 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-5xl mx-auto"
           >
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-6">
-              <Star className="w-4 h-4 text-blue-400" />
+            <div className="inline-flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 rounded-full px-6 py-3 mb-8">
+              <Star className="w-5 h-5 text-blue-400" />
               <span className="text-blue-400 text-sm font-medium">Coming Soon</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-6xl md:text-8xl font-bold text-white mb-8 leading-tight">
               Advanced Blockchain
               <span className="block text-blue-400">Security Analysis</span>
             </h1>
             
-            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
               Protect your assets with AI-powered analysis of smart contracts and wallet addresses. 
               Detect vulnerabilities, monitor transactions, and stay ahead of threats on Ethereum and Solana.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16">
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold text-xl transition-colors flex items-center gap-3"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-6 h-6" />
                 Join Waitlist
               </button>
               
-              <button className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2">
-                <Play className="w-5 h-5" />
+              <button className="bg-slate-800/50 hover:bg-slate-800/70 text-white px-10 py-5 rounded-xl font-semibold text-xl transition-colors flex items-center gap-3 border border-slate-700/50">
+                <Play className="w-6 h-6" />
                 Watch Demo
               </button>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-4xl mx-auto">
               <StatsCard
                 value={stats.waitlistCount.toLocaleString()}
                 label="Waitlist Members"
@@ -473,17 +473,17 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section className="container mx-auto px-4 py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">
+        <section className="container mx-auto px-6 py-24">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl font-bold text-white mb-6">
               Why Choose DeSpy AI?
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-2xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
               Advanced security analysis powered by artificial intelligence for the modern blockchain ecosystem.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {features.map((feature, index) => (
               <FeatureCard key={index} {...feature} />
             ))}
@@ -491,27 +491,27 @@ export default function LandingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="container mx-auto px-4 py-20">
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/20 rounded-2xl p-12 text-center">
-            <h2 className="text-4xl font-bold text-white mb-4">
+        <section className="container mx-auto px-6 py-24">
+          <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-3xl p-16 text-center">
+            <h2 className="text-5xl font-bold text-white mb-6">
               Ready to Secure Your Assets?
             </h2>
-            <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-              Join thousands of users already protecting their blockchain investments with DeSpy AI.
+            <p className="text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Join the waitlist to be among the first to experience the future of blockchain security.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-5 rounded-xl font-semibold text-xl transition-colors flex items-center gap-3"
               >
                 Get Early Access
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-6 h-6" />
               </button>
               
               <Link
                 to="/dashboard"
-                className="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+                className="bg-slate-800/50 hover:bg-slate-800/70 text-white px-10 py-5 rounded-xl font-semibold text-xl transition-colors border border-slate-700/50"
               >
                 View Demo
               </Link>
@@ -520,17 +520,17 @@ export default function LandingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="container mx-auto px-4 py-12 border-t border-white/10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
+        <footer className="container mx-auto px-6 py-16 border-t border-slate-800/50">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">DeSpy AI</span>
+              <span className="text-2xl font-bold text-white">DeSpy AI</span>
             </div>
             
-            <div className="flex items-center gap-6 text-sm text-gray-400">
-              <span>© 2024 DeSpy AI. All rights reserved.</span>
+            <div className="flex items-center gap-8 text-sm text-gray-400">
+              <span>© 2025 DeSpy AI. All rights reserved.</span>
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
             </div>
@@ -551,8 +551,8 @@ export default function LandingPage() {
         toastOptions={{
           duration: 4000,
           style: {
-            background: '#1f2937',
-            color: '#f9fafb',
+            background: '#1F2937',
+            color: '#F3F4F6',
             border: '1px solid #374151',
           },
         }}
