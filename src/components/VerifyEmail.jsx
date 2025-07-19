@@ -19,7 +19,7 @@ const VerifyEmail = () => {
 
   const verifyEmail = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/verify-email/${token}`);
+      const response = await fetch(`https://despy-ai-production.up.railway.app/api/verify-email/${token}`);
       const data = await response.json();
 
       if (!response.ok) {

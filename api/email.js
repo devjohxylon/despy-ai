@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendWelcomeEmail(email) {
   return resend.emails.send({
-    from: 'DeSpy AI <waitlist@despy.io>',
+    from: 'DeSpy AI <noreply@despy.io>',
     to: email,
     subject: 'Welcome to DeSpy AI Waitlist! 🚀',
     html: `
@@ -40,7 +40,7 @@ export async function sendWelcomeEmail(email) {
 
 export async function sendReferralEmail(referrerEmail, referredEmail) {
   return resend.emails.send({
-    from: 'DeSpy AI <rewards@despy.io>',
+    from: 'DeSpy AI <noreply@despy.io>',
     to: referrerEmail,
     subject: 'You\'ve Earned a Reward! 🎉',
     html: `
@@ -76,7 +76,7 @@ export async function sendReferralEmail(referrerEmail, referredEmail) {
 
 export async function sendUpdateEmail(email, update) {
   return resend.emails.send({
-    from: 'DeSpy AI <updates@despy.io>',
+    from: 'DeSpy AI <noreply@despy.io>',
     to: email,
     subject: `DeSpy AI Update: ${update.title} 🚀`,
     html: `

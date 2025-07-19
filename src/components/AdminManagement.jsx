@@ -14,7 +14,7 @@ const AdminManagement = () => {
   const fetchAdmins = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/admin/list', {
+      const response = await fetch('https://despy-ai-production.up.railway.app/api/admin/list', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -37,7 +37,7 @@ const AdminManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:3001/api/admin/create', {
+      const response = await fetch('https://despy-ai-production.up.railway.app/api/admin/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -67,7 +67,7 @@ const AdminManagement = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:3001/api/admin/${adminId}`, {
+      const response = await fetch(`https://despy-ai-production.up.railway.app/api/admin/${adminId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

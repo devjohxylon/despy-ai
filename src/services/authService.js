@@ -1,9 +1,9 @@
+import { secureTokenStorage, handleErrorSecurely } from '../utils/security.js';
+
 class AuthService {
   constructor() {
-    // Use Railway backend URL in production, fallback to localhost for local dev
-    this.baseURL = import.meta.env.PROD 
-      ? 'https://despy-ai-production.up.railway.app/api'
-      : 'http://localhost:3001/api';
+    // Use Railway backend URL for all environments
+    this.baseURL = 'https://despy-ai-production.up.railway.app/api';
     this.user = null;
     this.listeners = new Set();
   }
@@ -24,6 +24,8 @@ class AuthService {
 
   async login(email, password) {
     try {
+      console.log('Making login request to:', `${this.baseURL}/auth/login`);
+      
       const response = await fetch(`${this.baseURL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -32,21 +34,39 @@ class AuthService {
         body: JSON.stringify({ email, password })
       });
       
-      if (!response.ok) throw new Error('Login failed');
+      console.log('Login response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Login failed with status:', response.status, 'Response:', errorData);
+        
+        let error;
+        try {
+          const jsonError = JSON.parse(errorData);
+          error = new Error(jsonError.error || 'Login failed');
+          error.response = { status: response.status, data: jsonError };
+        } catch {
+          error = new Error(`Login failed: ${response.status} ${response.statusText}`);
+          error.response = { status: response.status, data: errorData };
+        }
+        throw error;
+      }
       
       const data = await response.json();
+      console.log('Login response data:', data);
+      
       this.setUser(data.user);
-      localStorage.setItem('token', data.token);
+      secureTokenStorage.setToken(data.token, 24); // 24 hours expiration
       return data;
     } catch (error) {
       console.error('Login failed:', error);
-      throw error;
+      throw new Error(handleErrorSecurely(error, 'login'));
     }
   }
 
   async logout() {
     try {
-      localStorage.removeItem('token');
+      secureTokenStorage.removeToken();
       this.setUser(null);
       window.location.href = '/';
     } catch (error) {
@@ -56,7 +76,7 @@ class AuthService {
 
   async getUser() {
     try {
-      const token = localStorage.getItem('token');
+      const token = secureTokenStorage.getToken();
       if (!token) {
         this.setUser(null);
         return null;
@@ -75,17 +95,18 @@ class AuthService {
       return data;
     } catch (error) {
       console.error('Failed to get user:', error);
+      secureTokenStorage.removeToken(); // Clear invalid token
       this.setUser(null);
       return null;
     }
   }
 
   isAuthenticated() {
-    return !!localStorage.getItem('token');
+    return secureTokenStorage.isTokenValid();
   }
 
   getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const token = secureTokenStorage.getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 }

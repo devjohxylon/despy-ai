@@ -1,6 +1,7 @@
 // src/components/DashboardPage.jsx
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Coins } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import ScoreCard from './ScoreCard'
 import RiskRadarChart from './RiskRadarChart'
@@ -8,6 +9,7 @@ import ActivityTimeline from './ActivityTimeline'
 import AlertsFeed from './AlertsFeed'
 import PredictionForm from './PredictionForm'
 import Topbar from './Topbar'
+import TokenDisplay from './TokenDisplay'
 
 // Animation variants
 const containerVariants = {
@@ -152,8 +154,8 @@ const AnalysisHeader = memo(({ data }) => (
       <>Analyzing Smart Contract</>
     ) : (
       <>
-        Analyzing <span className="text-sky-400">{data.address}</span> on{' '}
-        <span className="text-sky-400">{data.chain.charAt(0).toUpperCase() + data.chain.slice(1)}</span>
+        Analyzing <span className="text-sky-400">{data.address || 'Contract'}</span> on{' '}
+        <span className="text-sky-400">{data.chain ? data.chain.charAt(0).toUpperCase() + data.chain.slice(1) : 'Blockchain'}</span>
       </>
     )}
   </div>
@@ -180,6 +182,7 @@ const VulnerabilityAnalysis = memo(({ issues }) => (
 export default function DashboardPage() {
   const { data, loading } = useData()
   const resultsRef = useRef(null)
+  const [userTokens, setUserTokens] = useState(500)
 
   useEffect(() => {
     if (data?.transactions) {
@@ -191,18 +194,32 @@ export default function DashboardPage() {
     if (loading) return <LoadingSkeleton />
     if (!data) return null
 
-    return (
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AnalysisHeader data={data} />
+    // Check if user has enough tokens for scanning
+    const hasEnoughTokens = userTokens >= 100;
 
-        <motion.div
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-1"
-        >
-          <ScoreCard score={data.score} />
-        </motion.div>
+    return (
+      <div className="relative z-10 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <AnalysisHeader data={data} />
+
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="lg:col-span-1"
+          >
+            <ScoreCard score={data.score} />
+            {!hasEnoughTokens && (
+              <div className="mt-4 p-4 bg-orange-600/20 border border-orange-600/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-orange-400" />
+                  <span className="text-orange-400 font-medium">
+                    Insufficient tokens for scanning. You need 100 tokens per scan.
+                  </span>
+                </div>
+              </div>
+            )}
+          </motion.div>
 
         <motion.div
           initial={{ x: 20, opacity: 0 }}
@@ -274,9 +291,10 @@ export default function DashboardPage() {
         </div>
 
         {data.code && data.issues && <VulnerabilityAnalysis issues={data.issues} />}
+        </div>
       </div>
     )
-  }, [data, loading])
+  }, [data, loading, userTokens])
 
   return (
     <div className="min-h-screen bg-[#0B0F17] text-gray-50 relative overflow-hidden">
@@ -291,6 +309,28 @@ export default function DashboardPage() {
       </div>
 
       <main className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Prominent Token Display */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-600/30 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-600/20 rounded-xl">
+                  <Coins className="w-8 h-8 text-blue-400" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Token Balance</h2>
+                  <p className="text-gray-400">Manage your scanning credits</p>
+                </div>
+              </div>
+              <TokenDisplay onTokenUpdate={setUserTokens} />
+            </div>
+          </div>
+        </motion.div>
+
         <motion.div
           key="dashboard"
           variants={containerVariants}

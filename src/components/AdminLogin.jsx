@@ -16,12 +16,28 @@ export default function AdminLogin() {
     setLoading(true);
     
     try {
-      await authService.login(credentials.email, credentials.password);
+      console.log('Attempting login with:', credentials.email);
+      const result = await authService.login(credentials.email, credentials.password);
+      console.log('Login successful:', result);
       toast.success('Welcome to admin dashboard!');
-      navigate('/admin');
+      navigate('/admin/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.response?.data?.error || 'Failed to login');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      let errorMessage = 'Failed to login';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -59,6 +75,7 @@ export default function AdminLogin() {
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="username"
                 required
                 value={credentials.email}
                 onChange={handleChange}
@@ -74,6 +91,7 @@ export default function AdminLogin() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={credentials.password}
                 onChange={handleChange}

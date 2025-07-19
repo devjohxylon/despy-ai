@@ -3,10 +3,16 @@ import { Resend } from 'resend';
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Use verified domain if available, fallback to Resend's domain
+const getFromEmail = () => {
+  // Domain is verified in Resend - use custom domain
+  return 'DeSpy AI <noreply@despy.io>';
+};
+
 export const sendWelcomeEmail = async (email) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'DeSpy AI <noreply@despy.ai>',
+      from: getFromEmail(),
       to: [email],
       subject: 'Welcome to DeSpy AI Waitlist! 🚀',
       html: `
@@ -69,7 +75,7 @@ export const sendWelcomeEmail = async (email) => {
 export const sendUpdateEmail = async (email, title, content) => {
   try {
     const { data, error } = await resend.emails.send({
-      from: 'DeSpy AI <noreply@despy.ai>',
+      from: getFromEmail(),
       to: [email],
       subject: `DeSpy AI Update: ${title} 🔥`,
       html: `

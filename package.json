@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "18"
+    "node": "18.x"
   },
   "scripts": {
     "dev": "vite",
@@ -22,6 +22,8 @@
     "@sentry/node": "^9.40.0",
     "@sentry/react": "^9.40.0",
     "@sentry/tracing": "^7.120.3",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.5.0",
     "@vercel/analytics": "^1.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -32,13 +34,15 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.330.0",
     "nanoid": "^4.0.2",
+    "node-fetch": "^3.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.0",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.22.0",
     "recharts": "^2.12.0",
-    "resend": "^4.7.0"
+    "resend": "^4.7.0",
+    "stripe": "^18.3.0"
   },
   "devDependencies": {
     "@railway/cli": "^4.5.5",
